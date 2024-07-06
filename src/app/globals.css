@@ -2,32 +2,112 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+/* styles/markdown.css */
+.markdown h1 {
+	font-size: 2em;
+	margin-top: 0.67em;
+	font-weight: bold;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+.markdown h2 {
+	font-size: 1.5em;
+	margin-top: 0.83em;
+	font-weight: bold;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+.markdown h3 {
+	font-size: 1.3em;
+	font-weight: bold;
+	margin-top: 1em;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.markdown h4 {
+	font-size: 1.2em;
+	font-weight: bold;
+	margin-top: 1.2em;
+}
+
+.markdown p {
+	margin: 1em 0;
+}
+
+.markdown a {
+	color: #3498db;
+	text-decoration: none;
+}
+
+.markdown a:hover {
+	text-decoration: underline;
+}
+
+.markdown ul {
+	list-style-type: disc;
+	margin: 1em 0;
+	padding-left: 2em;
+}
+
+.markdown ol {
+	list-style-type: decimal;
+	margin: 1em 0;
+	padding-left: 2em;
+}
+
+.markdown blockquote {
+	margin: 1em 0;
+	padding: 0.5em 1em;
+	border-left: 0.25em solid #dfe2e5;
+	color: #6a737d;
+	background-color: #f6f8fa;
+}
+
+/* .markdown code {
+	font-family: "Courier New", Courier, monospace;
+	background-color: #f6f8fa;
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	margin: 0;
+	font-size: 85%;
+} */
+
+/* .markdown pre {
+	background-color: #f6f8fa;
+	padding: 1em;
+	border-radius: 3px;
+	overflow: auto;
+} */
+
+textarea,
+input {
+	outline: none; /* 클릭했을 때 외곽선 제거 */
+	resize: none; /* 오른쪽 아래 드래그 부분 제거 */
+}
+
+/* styles/globals.css */
+.toc {
+	padding: 0;
+	list-style-type: none;
+}
+
+.toc li {
+	margin: 0.5rem 0;
+}
+
+.toc .toc-h1 {
+	font-size: 1.1rem;
+	font-weight: bold;
+}
+
+.toc .toc-h2 {
+	font-size: 1rem;
+	margin-left: 1rem;
+}
+
+.toc .toc-h3 {
+	font-size: 0.9rem;
+	margin-left: 2rem;
+}
+
+.toc .toc-h4 {
+	font-size: 0.8rem;
+	margin-left: 3rem;
 }
