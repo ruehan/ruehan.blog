@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "highlight.js/styles/a11y-dark.css";
 import Link from "next/link";
 
-const inter = Inter({ subsets: ["latin"] });
+const reko = localFont({
+	src: "../font/NanumSquareR.ttf",
+});
 
 export const metadata: Metadata = {
 	title: "ruehan.blog",
@@ -18,7 +20,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={inter.className}>
+			<body className={reko.className}>
 				<nav className="w-full h-16 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
 					<Link href={"/"}>Home</Link>
 				</nav>
