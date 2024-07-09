@@ -11,10 +11,24 @@ export interface TocItem {
 
 interface PostContentProps {
 	content: string;
+	post: any;
+	tags: any;
 	toc: TocItem[];
+	thumbnail: string;
 }
 
-const PostContent: React.FC<PostContentProps> = ({ content, toc }) => {
+function getNameById(tags: any, id: any) {
+	const tag = tags.find((tag: any) => tag.id === id);
+	return tag ? tag.name : null;
+}
+
+const PostContent: React.FC<PostContentProps> = ({
+	content,
+	toc,
+	post,
+	tags,
+	thumbnail,
+}) => {
 	const [tocItems, setTocItems] = useState<TocItem[]>(toc);
 	const [activeTocId, setActiveTocId] = useState<string | null>(null);
 
@@ -75,6 +89,27 @@ const PostContent: React.FC<PostContentProps> = ({ content, toc }) => {
 			</div>
 			<div className="w-full md:w-3/4 p-4">
 				<div id="content-render" className="markdown">
+					<div
+						className="w-full h-72 bg-gray-100 flex flex-col justify-end p-8 gap-4"
+						style={{
+							backgroundImage: `url(
+								${thumbnail}
+							)`,
+							backgroundSize: "cover",
+						}}
+					>
+						<div className="text-3xl font-bold text-white">{post.title}</div>
+						<div>
+							{post.tags.map((tag: any) => (
+								<span
+									key={tag.postId}
+									className="tag bg-red-100 text-xs font-bold rounded-full p-[5px]"
+								>
+									{getNameById(tags, tag.tagId)}
+								</span>
+							))}
+						</div>
+					</div>
 					<MarkdownRenderer content={content} />
 				</div>
 			</div>
