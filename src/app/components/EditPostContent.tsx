@@ -14,6 +14,18 @@ interface PostFormData {
 	id: string;
 }
 
+const extractImageUrls = (markdown: string): string[] => {
+	const regex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+	const matches = [];
+	let match;
+
+	while ((match = regex.exec(markdown)) !== null) {
+		matches.push(match[1]);
+	}
+
+	return matches;
+};
+
 const EditPostContent: React.FC<PostFormData> = ({
 	title,
 	content,
@@ -25,12 +37,24 @@ const EditPostContent: React.FC<PostFormData> = ({
 	const watchTags = watch("tags");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const formRef = useRef<HTMLFormElement>(null);
+	const [imageUrls, setImageUrls] = useState<string[]>([]);
 
 	const interceptAction = (_: any, formData: FormData) => {
 		const tags = watchTags!.split(",").map((tag) => tag.trim());
 		tags.forEach((tag) => {
 			formData.append("format_tags", tag);
 		});
+
+		console.log(imageUrls);
+
+		imageUrls.forEach((image, idx) => {
+			if (idx === 0) {
+				formData.append("images", "tn" + image);
+			} else {
+				formData.append("images", image);
+			}
+		});
+
 		formData.append("id", id);
 
 		return editPost(_, formData);
@@ -50,6 +74,11 @@ const EditPostContent: React.FC<PostFormData> = ({
 				textareaRef.current.scrollHeight,
 				maxHeight
 			)}px`;
+
+			const urls = extractImageUrls(textareaRef.current.value);
+			setImageUrls(urls);
+
+			// console.log(urls);
 		}
 	};
 
