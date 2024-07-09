@@ -11,6 +11,7 @@ const postSchema = z.object({
 		.array(z.string())
 		.min(1, { message: "At least one tag is required" }),
 	id: z.number().min(1),
+	images: z.array(z.string()),
 });
 
 export async function getPost(id: number) {
@@ -20,6 +21,7 @@ export async function getPost(id: number) {
 		},
 		include: {
 			tags: true,
+			images: true,
 		},
 	});
 
@@ -31,15 +33,24 @@ export async function getTags() {
 	return tags;
 }
 
+export async function getImages() {
+	const images = await prisma.image.findMany({});
+
+	return images;
+}
+
 export async function editPost(prevState: any, formData: FormData) {
 	const data = {
 		title: formData.get("title") as string,
 		content: formData.get("content") as string,
 		format_tags: formData.getAll("format_tags") as string[],
 		id: Number(formData.get("id")),
+		images: formData.getAll("images") as string[],
 	};
 
 	const result = postSchema.safeParse(data);
+
+	console.log(result);
 
 	if (!result.success) {
 		return result.error.flatten();
@@ -57,6 +68,30 @@ export async function editPost(prevState: any, formData: FormData) {
 					} else {
 						return prisma.tag.create({
 							data: { name: tag },
+						});
+					}
+				})
+			);
+
+			const deleteImages = await prisma.imageTag.deleteMany({
+				where: {
+					postId: result.data.id,
+				},
+			});
+
+			console.log(deleteImages);
+
+			const images = await Promise.all(
+				result.data.images.map(async (url) => {
+					const existingImage = await prisma.image.findUnique({
+						where: { url: url },
+					});
+
+					if (existingImage) {
+						return existingImage;
+					} else {
+						return prisma.image.create({
+							data: { url: url },
 						});
 					}
 				})
@@ -80,13 +115,18 @@ export async function editPost(prevState: any, formData: FormData) {
 							},
 						})),
 					},
+					images: {
+						deleteMany: {},
+						create: images.map((image) => ({
+							image: {
+								connect: {
+									id: image.id,
+								},
+							},
+						})),
+					},
 				},
 			});
-
-			if (post) {
-				// 성공적으로 업데이트된 경우 리디렉션 또는 다른 작업을 수행합니다.
-				// redirect("/");
-			}
 		} catch (error) {
 			console.error("Error updating post:", error);
 			throw new Error("Failed to update post");

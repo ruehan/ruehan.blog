@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { useFormState } from "react-dom";
 import MarkdownRenderer from "@/app/components/MarkdownRenderer";
 import EditPostContent from "@/app/components/EditPostContent";
-import { getPost, getTags } from "./actions";
+import { getImages, getPost, getTags } from "./actions";
 
 interface PostFormData {
 	title: string;
@@ -16,10 +16,17 @@ function getNameById(tags: any, id: any) {
 	return tag ? tag.name : null;
 }
 
+function getUrlById(urls: any, id: any) {
+	const url = urls.find((url: any) => url.id === id);
+	return url ? url.url : null;
+}
+
 export default async function EditPost({ params }: { params: { id: string } }) {
 	const data = await getPost(Number(params.id));
 	const tags = await getTags();
+	const images = await getImages();
 	let tagArr: any = [];
+	let urlArr: any = [];
 
 	// console.log(data);
 
@@ -33,7 +40,13 @@ export default async function EditPost({ params }: { params: { id: string } }) {
 		});
 	}
 
-	console.log(tagArr);
+	if (data.images) {
+		data.images.forEach((url) => {
+			urlArr.push(getUrlById(images, url.imageId));
+		});
+	}
+
+	// console.log(urlArr);
 
 	if (tagArr.length === 0) {
 		return null;

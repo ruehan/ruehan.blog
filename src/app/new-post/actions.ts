@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import prisma from "../../lib/prisma";
+import { redirect } from "next/navigation";
 
 const postSchema = z.object({
 	title: z.string().min(1, { message: "Title is required" }),
@@ -9,6 +10,7 @@ const postSchema = z.object({
 	format_tags: z
 		.array(z.string())
 		.min(1, { message: "At least one tag is required" }),
+	images: z.array(z.string()),
 });
 
 export async function createPost(prevState: any, formData: FormData) {
@@ -16,6 +18,7 @@ export async function createPost(prevState: any, formData: FormData) {
 		title: formData.get("title"),
 		content: formData.get("content"),
 		format_tags: formData.getAll("format_tags"),
+		images: formData.getAll("images") as string[],
 	};
 
 	const result = postSchema.safeParse(data);
@@ -25,7 +28,7 @@ export async function createPost(prevState: any, formData: FormData) {
 		return result.error.flatten();
 	} else {
 		// 검증 성공
-		console.log("Validated data:", result.data);
+		// console.log("Validated data:", result.data);
 
 		const post = await prisma.post.create({
 			data: {
@@ -41,7 +44,21 @@ export async function createPost(prevState: any, formData: FormData) {
 						},
 					})),
 				},
+				images: {
+					create: result.data.images.map((image: any) => ({
+						image: {
+							connectOrCreate: {
+								where: { url: image },
+								create: { url: image },
+							},
+						},
+					})),
+				},
 			},
 		});
+
+		if (post) {
+			redirect("/");
+		}
 	}
 }

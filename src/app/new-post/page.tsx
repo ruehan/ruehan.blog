@@ -9,7 +9,9 @@ import MarkdownRenderer from "../components/MarkdownRenderer";
 interface PostFormData {
 	title: string;
 	content: string;
-	tags: string;
+	tags?: string;
+	tagArr?: string[];
+	id: string;
 }
 
 const NewPost: React.FC = () => {
@@ -18,12 +20,21 @@ const NewPost: React.FC = () => {
 	const watchTags = watch("tags");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const formRef = useRef<HTMLFormElement>(null);
+	const [imageUrls, setImageUrls] = useState<string[]>([]);
 
 	const interceptAction = (_: any, formData: FormData) => {
-		const tags = watchTags.split(",").map((tag) => tag.trim());
-		console.log(tags);
+		const tags = watchTags!.split(",").map((tag) => tag.trim());
+		// console.log(tags);
 		tags.forEach((tag) => {
 			formData.append("format_tags", tag);
+		});
+
+		imageUrls.forEach((image, idx) => {
+			if (idx === 0) {
+				formData.append("images", "tn" + image);
+			} else {
+				formData.append("images", image);
+			}
 		});
 
 		return createPost(_, formData);
@@ -35,7 +46,7 @@ const NewPost: React.FC = () => {
 			const formHeight = formRef.current.clientHeight;
 			const buttonHeight =
 				formRef.current.querySelector("button")?.clientHeight || 0;
-			const maxHeight = formHeight - buttonHeight - 48 - 128; // adjust 48px as padding/margin
+			const maxHeight = formHeight - buttonHeight - 48 - 192; // adjust 48px as padding/margin
 			textareaRef.current.style.maxHeight = `${maxHeight}px`;
 
 			textareaRef.current.style.height = "auto";
@@ -93,7 +104,7 @@ const NewPost: React.FC = () => {
 
 				<button
 					type="submit"
-					className="w-full h-16 p-4 absolute bottom-0 left-0 shadow-xl shadow-black"
+					className="w-full md:w-1/2 h-16 p-4 fixed bottom-0 left-0 shadow-xl bg-white shadow-black z-10"
 				>
 					Create Post
 				</button>
