@@ -3,11 +3,27 @@
 import { notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import PostContent, { TocItem } from "@/app/components/PostContent";
+import { getImages } from "@/app/edit-post/[id]/actions";
+
+async function getTags() {
+	const tags = await prisma.tag.findMany({});
+
+	return tags;
+}
+
+function getUrlById(urls: any, id: any) {
+	const url = urls.find((url: any) => url.id === id);
+	return url ? url.url : null;
+}
 
 async function getPost(id: number) {
 	const post = await prisma.post.findUnique({
 		where: {
 			id: id,
+		},
+		include: {
+			tags: true,
+			images: true,
 		},
 	});
 
@@ -30,15 +46,38 @@ async function getPost(id: number) {
 		});
 	}
 
-	return { content, toc: tocItems };
+	return { content, toc: tocItems, post };
 }
 
 export default async function PostPage({ params }: { params: { id: string } }) {
 	const post = await getPost(Number(params.id));
+	const tags = await getTags();
+	const images = await getImages();
+	let urlArr: any = [];
 
 	if (!post) {
 		notFound();
 	}
 
-	return <PostContent content={post.content} toc={post.toc} />;
+	console.log(post.post.images);
+
+	if (post.post.images) {
+		post.post.images.forEach((url) => {
+			urlArr.push(getUrlById(images, url.imageId));
+		});
+	}
+
+	const tnStrings = urlArr
+		.filter((str: string) => str.startsWith("tn"))
+		.map((str: string) => str.slice(2));
+
+	return (
+		<PostContent
+			content={post.content}
+			toc={post.toc}
+			post={post.post}
+			tags={tags}
+			thumbnail={tnStrings[0]}
+		/>
+	);
 }
