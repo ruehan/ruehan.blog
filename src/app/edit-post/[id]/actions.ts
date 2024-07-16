@@ -1,5 +1,4 @@
 "use server";
-
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -12,6 +11,7 @@ const postSchema = z.object({
 		.min(1, { message: "At least one tag is required" }),
 	id: z.number().min(1),
 	images: z.array(z.string()),
+	thumbnail: z.string(),
 });
 
 export async function getPost(id: number) {
@@ -46,11 +46,14 @@ export async function editPost(prevState: any, formData: FormData) {
 		format_tags: formData.getAll("format_tags") as string[],
 		id: Number(formData.get("id")),
 		images: formData.getAll("images") as string[],
+		thumbnail: ("tn" + formData.get("thumbnail")) as string,
 	};
+
+	// console.log(data);
 
 	const result = postSchema.safeParse(data);
 
-	console.log(result);
+	// console.log(result);
 
 	if (!result.success) {
 		return result.error.flatten();
@@ -79,7 +82,7 @@ export async function editPost(prevState: any, formData: FormData) {
 				},
 			});
 
-			console.log(deleteImages);
+			// console.log(deleteImages);
 
 			const images = await Promise.all(
 				result.data.images.map(async (url) => {
@@ -96,6 +99,30 @@ export async function editPost(prevState: any, formData: FormData) {
 					}
 				})
 			);
+
+			// const thumbnail = await
+
+			// console.log(images);
+
+			let thumbnail;
+
+			const existingThumbnail = await prisma.image.findUnique({
+				where: { url: result.data.thumbnail },
+			});
+
+			if (existingThumbnail) {
+				thumbnail = existingThumbnail;
+			} else {
+				thumbnail = await prisma.image.create({
+					data: { url: result.data.thumbnail },
+				});
+			}
+
+			images.push(thumbnail);
+
+			console.log(images);
+
+			// return null;
 
 			// 포스트를 업데이트하고 새로운 태그를 연결합니다.
 			const post = await prisma.post.update({
@@ -132,4 +159,20 @@ export async function editPost(prevState: any, formData: FormData) {
 			throw new Error("Failed to update post");
 		}
 	}
+}
+
+export async function getUploadUrl() {
+	const response = await fetch(
+		`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/images/v2/direct_upload`,
+		{
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${process.env.CLOUDFLARE_API_KEY}`,
+			},
+		}
+	);
+
+	const data = await response.json();
+	console.log(data);
+	return data;
 }

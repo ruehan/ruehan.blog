@@ -46,7 +46,7 @@ export default async function EditPost({ params }: { params: { id: string } }) {
 		});
 	}
 
-	// console.log(urlArr);
+	console.log(urlArr);
 
 	if (tagArr.length === 0) {
 		return null;
@@ -58,6 +58,7 @@ export default async function EditPost({ params }: { params: { id: string } }) {
 			content={data.content}
 			tagArr={tagArr}
 			title={data.title}
+			thumbnail={urlArr.filter((url: string) => url.startsWith("tn"))}
 		></EditPostContent>
 	);
 }
