@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import MarkdownRenderer from "@/app/components/MarkdownRenderer";
+import { formatDate } from "@/lib/utils";
 
 export interface TocItem {
 	id: string;
@@ -108,6 +109,9 @@ const PostContent: React.FC<PostContentProps> = ({
 									{getNameById(tags, tag.tagId)}
 								</span>
 							))}
+						</div>
+						<div className="text-white font-bold text-sm">
+							{formatDate(post.updatedAt)}
 						</div>
 					</div>
 					<MarkdownRenderer content={content} />
