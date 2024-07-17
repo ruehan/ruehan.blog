@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useFormState } from "react-dom";
 import MarkdownRenderer from "@/app/components/MarkdownRenderer";
-import { editPost } from "../edit-post/[id]/actions";
+import { editPost, getUploadUrl } from "../edit-post/[id]/actions";
 
 interface PostFormData {
 	title: string;
@@ -12,6 +12,7 @@ interface PostFormData {
 	tags?: string;
 	tagArr?: string[];
 	id: string;
+	thumbnail: string[];
 }
 
 const extractImageUrls = (markdown: string): string[] => {
@@ -31,13 +32,19 @@ const EditPostContent: React.FC<PostFormData> = ({
 	content,
 	tagArr,
 	id,
+	thumbnail,
 }) => {
-	const { register, handleSubmit, reset, watch } = useForm<PostFormData>();
+	const { register, handleSubmit, reset, watch, setValue } =
+		useForm<PostFormData>();
 	const [watchContent, setWatchContent] = useState<string>("");
 	const watchTags = watch("tags");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const formRef = useRef<HTMLFormElement>(null);
 	const [imageUrls, setImageUrls] = useState<string[]>([]);
+
+	const [imageId, setImageId] = useState("");
+	const [uploadUrl, setUploadUrl] = useState("");
+	const [preview, setPreview] = useState("");
 
 	const interceptAction = (_: any, formData: FormData) => {
 		const tags = watchTags!.split(",").map((tag) => tag.trim());
@@ -48,16 +55,81 @@ const EditPostContent: React.FC<PostFormData> = ({
 		console.log(imageUrls);
 
 		imageUrls.forEach((image, idx) => {
-			if (idx === 0) {
-				formData.append("images", "tn" + image);
-			} else {
-				formData.append("images", image);
-			}
+			formData.append("images", image);
 		});
 
 		formData.append("id", id);
 
 		return editPost(_, formData);
+	};
+
+	function logFormData(formData) {
+		for (const [key, value] of formData.entries()) {
+			console.log(`${key}:`, value);
+		}
+	}
+
+	const onImageChange = async (event: React.ChangeEvent<HTMLElement>) => {
+		const {
+			target: { files },
+		} = event;
+
+		if (!files) {
+			return;
+		}
+
+		const file = files[0];
+		const url = URL.createObjectURL(file);
+
+		const { success, result } = await getUploadUrl();
+
+		if (success) {
+			const { id, uploadURL } = result;
+
+			setUploadUrl(uploadURL);
+			setImageId(id);
+
+			const cloudflareForm = new FormData();
+
+			cloudflareForm.append("file", file);
+
+			logFormData(cloudflareForm);
+
+			try {
+				const uploadResponse = await fetch(uploadURL, {
+					method: "POST",
+					body: cloudflareForm,
+				});
+
+				console.log("Response status:", uploadResponse.status);
+				const responseData = await uploadResponse.json();
+				console.log("Response data:", responseData);
+
+				if (uploadResponse.ok) {
+					const photoUrl = `https://imagedelivery.net/CJyrB-EkqcsF2D6ApJzEBg/${id}/public`;
+					console.log("Uploaded photo URL:", photoUrl);
+
+					// 마크다운 형식으로 변환하여 textarea에 추가
+					const markdown = `![image](${photoUrl})`;
+					console.log(markdown);
+					setWatchContent((prevContent) => prevContent + "\n" + markdown);
+					// setValue("content", watchContent);
+					textareaRef.current.value =
+						textareaRef.current?.value + "\n" + markdown;
+					// textareaRef.current.value + "\n" + markdown;
+
+					setPreview(url);
+				} else {
+					console.error("Failed to upload image:", responseData);
+				}
+			} catch (error) {
+				console.error("Fetch error:", error);
+			}
+
+			const photoUrl = `https://imagedelivery.net/CJyrB-EkqcsF2D6ApJzEBg/${id}/public`;
+
+			console.log(photoUrl);
+		}
 	};
 
 	const handleInput = () => {
@@ -77,8 +149,6 @@ const EditPostContent: React.FC<PostFormData> = ({
 
 			const urls = extractImageUrls(textareaRef.current.value);
 			setImageUrls(urls);
-
-			// console.log(urls);
 		}
 	};
 
@@ -95,6 +165,17 @@ const EditPostContent: React.FC<PostFormData> = ({
 				className="w-full h-full flex-col p-8  relative md:full overflow-hidden"
 				ref={formRef}
 			>
+				<div className="flex items-center">
+					<input
+						id="thumbnail"
+						type="text"
+						{...register("thumbnail", { required: true })}
+						placeholder="썸네일 URL"
+						className="w-full h-12 p-4 font-bold "
+						name="thumbnail"
+						defaultValue={thumbnail[0].replace("tn", "")}
+					/>
+				</div>
 				<div>
 					<input
 						id="title"
@@ -129,6 +210,13 @@ const EditPostContent: React.FC<PostFormData> = ({
 						defaultValue={content}
 					/>
 				</div>
+				<div>
+					{/* <input
+						type="file"
+						accept="video/*"
+						// onChange={(e) => handleFileUpload(e, "stream")}
+					/> */}
+				</div>
 
 				<button
 					type="submit"
@@ -140,6 +228,22 @@ const EditPostContent: React.FC<PostFormData> = ({
 			<div className="hidden md:block md:w-full  bg-[#fafdfc] p-8 overflow-scroll markdown">
 				<MarkdownRenderer content={watchContent}></MarkdownRenderer>
 			</div>
+			<label
+				htmlFor="photo"
+				className="bg-blue-200 size-[200px] fixed bottom-0 right-0 rounded-full"
+				style={{
+					backgroundImage: `url(${preview})`,
+					backgroundSize: "cover",
+				}}
+			></label>
+			<input
+				id="photo"
+				type="file"
+				accept="image/*"
+				onChange={onImageChange}
+				className="hidden"
+				// onChange={(e) => handleFileUpload(e, "image")}
+			/>
 		</main>
 	);
 };
