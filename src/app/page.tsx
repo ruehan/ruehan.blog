@@ -8,6 +8,8 @@ import Image from "next/image";
 import { getImages } from "./edit-post/[id]/actions";
 import { useEffect, useState } from "react";
 import { getPost, getPostByTag, getTags } from "./actions";
+import { generateRandomKey } from "./components/PostContent";
+import LoadingSpinner from "./components/Loader";
 
 export function getNameById(tags: any, id: any) {
 	const tag = tags.find((tag: any) => tag.id === id);
@@ -28,6 +30,7 @@ export default function Home() {
 	const [tags, setTags] = useState<any>();
 	const [images, setImages] = useState<any>();
 	const [selectedTag, setSelectedTag] = useState("전체보기");
+	const [loading, setLoading] = useState<boolean>(true);
 
 	useEffect(() => {
 		async function fetchData() {
@@ -60,6 +63,7 @@ export default function Home() {
 	}
 
 	async function handleTagClick(tagName: string) {
+		setLoading(false);
 		setSelectedTag(tagName);
 		if (tagName === "전체보기") {
 			const fetchedPosts = await getPost();
@@ -68,10 +72,12 @@ export default function Home() {
 			const filteredPosts = await getPostByTag(tagName);
 			setPosts(filteredPosts);
 		}
+
+		setLoading(true);
 	}
 
-	if (!posts || !tags) {
-		return <div>Loading...</div>;
+	if (!posts || !tags || !loading) {
+		return <LoadingSpinner />;
 	}
 
 	return (
@@ -81,7 +87,7 @@ export default function Home() {
 					onClick={() => handleTagClick("전체보기")}
 					className={`tag ${
 						selectedTag === "전체보기" ? "bg-blue-200" : "bg-gray-200"
-					} text-xs font-bold rounded-full p-[5px]`}
+					} text-xs font-bold rounded-full p-[1rem]`}
 				>
 					전체보기
 				</button>
@@ -91,7 +97,7 @@ export default function Home() {
 						onClick={() => handleTagClick(tag.name)}
 						className={`tag ${
 							selectedTag === tag.name ? "bg-blue-200" : "bg-gray-200"
-						} text-xs font-bold rounded-full p-[5px]`}
+						} text-xs font-bold rounded-full p-[1rem]`}
 					>
 						{tag.name}
 					</button>
@@ -102,7 +108,7 @@ export default function Home() {
 				{posts.map((post: any) => (
 					<Link
 						href={`/post/${post.id}`}
-						key={post.id}
+						key={generateRandomKey()}
 						className="text-center  w-full h-fit rounded-xl flex flex-col bg-[#fafdfc]"
 					>
 						<Image
@@ -121,7 +127,7 @@ export default function Home() {
 								<div className="flex gap-2 justify-start">
 									{post.tags.map((tag: any) => (
 										<span
-											key={tag.postId}
+											key={generateRandomKey()}
 											className="tag bg-red-100 text-xs font-bold rounded-full p-[5px]"
 										>
 											{getNameById(tags, tag.tagId)}
