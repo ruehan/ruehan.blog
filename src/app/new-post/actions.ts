@@ -11,6 +11,7 @@ const postSchema = z.object({
 		.array(z.string())
 		.min(1, { message: "At least one tag is required" }),
 	images: z.array(z.string()),
+	thumbnail: z.string(),
 });
 
 export async function createPost(prevState: any, formData: FormData) {
@@ -19,6 +20,7 @@ export async function createPost(prevState: any, formData: FormData) {
 		content: formData.get("content"),
 		format_tags: formData.getAll("format_tags"),
 		images: formData.getAll("images") as string[],
+		thumbnail: ("tn" + formData.get("thumbnail")) as string,
 	};
 
 	const result = postSchema.safeParse(data);
@@ -29,6 +31,8 @@ export async function createPost(prevState: any, formData: FormData) {
 	} else {
 		// 검증 성공
 		// console.log("Validated data:", result.data);
+
+		result.data.images.push(result.data.thumbnail);
 
 		const post = await prisma.post.create({
 			data: {
