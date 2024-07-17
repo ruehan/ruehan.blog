@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import MarkdownRenderer from "@/app/components/MarkdownRenderer";
 import { formatDate } from "@/lib/utils";
+import ColorThief from "colorthief";
 
 export interface TocItem {
 	id: string;
@@ -23,6 +24,17 @@ function getNameById(tags: any, id: any) {
 	return tag ? tag.name : null;
 }
 
+export function generateRandomKey() {
+	return Math.random().toString(36).substr(2, 9);
+}
+
+const getContrastYIQ = (rgb: number[]) => {
+	const [r, g, b] = rgb;
+	const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+
+	return yiq >= 128 ? "black" : "white";
+};
+
 const PostContent: React.FC<PostContentProps> = ({
 	content,
 	toc,
@@ -32,6 +44,20 @@ const PostContent: React.FC<PostContentProps> = ({
 }) => {
 	const [tocItems, setTocItems] = useState<TocItem[]>(toc);
 	const [activeTocId, setActiveTocId] = useState<string | null>(null);
+	const [textColor, setTextColor] = useState<string>("white");
+
+	useEffect(() => {
+		const img = new Image();
+
+		img.crossOrigin = "Anoymous";
+		img.src = thumbnail;
+		img.onload = () => {
+			const colorThief = new ColorThief();
+			const dominantColor = colorThief.getColor(img);
+			const textColor = getContrastYIQ(dominantColor);
+			setTextColor(textColor);
+		};
+	}, [thumbnail]);
 
 	useEffect(() => {
 		const generateToc = () => {
@@ -97,20 +123,23 @@ const PostContent: React.FC<PostContentProps> = ({
 								${thumbnail}
 							)`,
 							backgroundSize: "cover",
+							backgroundRepeat: "no-repeat",
+							backgroundPosition: "center",
+							color: textColor,
 						}}
 					>
-						<div className="text-3xl font-bold text-white">{post.title}</div>
+						<div className="text-3xl font-bold">{post.title}</div>
 						<div>
 							{post.tags.map((tag: any) => (
 								<span
-									key={tag.postId}
-									className="tag bg-red-100 text-xs font-bold rounded-full p-[5px]"
+									key={generateRandomKey()}
+									className="tag text-sm font-bold rounded-full p-[5px]"
 								>
 									{getNameById(tags, tag.tagId)}
 								</span>
 							))}
 						</div>
-						<div className="text-white font-bold text-sm">
+						<div className="font-bold text-xs">
 							{formatDate(post.updatedAt)}
 						</div>
 					</div>
