@@ -21,8 +21,10 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={reko.className}>
-				<nav className="w-full h-16 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
-					<Link href={"/"}>Home</Link>
+				<nav className="w-full h-16 backdrop-blur-sm sticky top-0 z-10 shadow-sm flex justify-center items-center">
+					<Link href={"/"} className="text-2xl custom-font">
+						Ruehan.blog
+					</Link>
 				</nav>
 				{children}
 			</body>

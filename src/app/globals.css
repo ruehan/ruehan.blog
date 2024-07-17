@@ -2,29 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+	font-family: "CustomFont";
+	src: url("../font/Cafe24Decoschool.ttf");
+	font-weight: normal;
+	font-style: normal;
+}
+
+.custom-font {
+	font-family: "CustomFont", sans-serif;
+}
+
 /* styles/markdown.css */
 .markdown h1 {
 	font-size: 2em;
-	margin-top: 0.67em;
+	margin-top: 0.2em;
 	font-weight: bold;
 }
 
 .markdown h2 {
 	font-size: 1.5em;
-	margin-top: 0.83em;
+	margin-top: 0.3em;
 	font-weight: bold;
 }
 
 .markdown h3 {
 	font-size: 1.3em;
 	font-weight: bold;
-	margin-top: 1em;
+	margin-top: 0.4em;
 }
 
 .markdown h4 {
 	font-size: 1.2em;
 	font-weight: bold;
-	margin-top: 1.2em;
+	margin-top: 0.5em;
 }
 
 .markdown p {
@@ -58,6 +69,11 @@
 	border-left: 0.25em solid #dfe2e5;
 	color: #6a737d;
 	background-color: #f6f8fa;
+}
+
+.markdown img {
+	max-width: 70%;
+	border-radius: 1%;
 }
 
 /* .markdown code {
