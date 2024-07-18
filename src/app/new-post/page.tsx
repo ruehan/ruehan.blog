@@ -45,7 +45,7 @@ const NewPost: React.FC = () => {
 		handleInput();
 	}, []);
 
-	const onImageChange = async (event: React.ChangeEvent<HTMLElement>) => {
+	const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const {
 			target: { files },
 		} = event;
@@ -88,9 +88,10 @@ const NewPost: React.FC = () => {
 					console.log(markdown);
 					setWatchContent((prevContent) => prevContent + "\n" + markdown);
 					// setValue("content", watchContent);
-					textareaRef.current.value =
-						textareaRef.current?.value + "\n" + markdown;
-					// textareaRef.current.value + "\n" + markdown;
+					if (textareaRef.current) {
+						textareaRef.current.value =
+							textareaRef.current.value + "\n" + markdown;
+					}
 
 					setPreview(url);
 				} else {

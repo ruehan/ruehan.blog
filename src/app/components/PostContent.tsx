@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import MarkdownRenderer from "@/app/components/MarkdownRenderer";
-import { formatDate } from "@/lib/utils";
+import { formatDate, generateRandomKey } from "@/lib/utils";
 import ColorThief from "colorthief";
 
 export interface TocItem {
@@ -22,10 +22,6 @@ interface PostContentProps {
 function getNameById(tags: any, id: any) {
 	const tag = tags.find((tag: any) => tag.id === id);
 	return tag ? tag.name : null;
-}
-
-export function generateRandomKey() {
-	return Math.random().toString(36).substr(2, 9);
 }
 
 const getContrastYIQ = (rgb: number[]) => {

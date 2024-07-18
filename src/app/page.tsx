@@ -1,20 +1,12 @@
 "use client";
 
-import prisma from "@/lib/prisma";
-import MarkdownRenderer from "./components/MarkdownRenderer";
-import { formatDate } from "@/lib/utils";
+import { formatDate, generateRandomKey, getNameById } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
 import { getImages } from "./edit-post/[id]/actions";
 import { useEffect, useState } from "react";
 import { getPost, getPostByTag, getTags } from "./actions";
-import { generateRandomKey } from "./components/PostContent";
 import LoadingSpinner from "./components/Loader";
-
-export function getNameById(tags: any, id: any) {
-	const tag = tags.find((tag: any) => tag.id === id);
-	return tag ? tag.name : null;
-}
 
 function getUrlById(urls: any, id: any) {
 	const url = urls.find((url: any) => url.id === id);
@@ -22,10 +14,6 @@ function getUrlById(urls: any, id: any) {
 }
 
 export default function Home() {
-	// const posts = await getPost();
-	// const tags = await getTags();
-	// const images = await getImages();
-
 	const [posts, setPosts] = useState<any>();
 	const [tags, setTags] = useState<any>();
 	const [images, setImages] = useState<any>();
@@ -104,7 +92,7 @@ export default function Home() {
 				))}
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
 				{posts.map((post: any) => (
 					<Link
 						href={`/post/${post.id}`}

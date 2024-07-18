@@ -63,13 +63,13 @@ const EditPostContent: React.FC<PostFormData> = ({
 		return editPost(_, formData);
 	};
 
-	function logFormData(formData) {
+	function logFormData(formData: any) {
 		for (const [key, value] of formData.entries()) {
 			console.log(`${key}:`, value);
 		}
 	}
 
-	const onImageChange = async (event: React.ChangeEvent<HTMLElement>) => {
+	const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const {
 			target: { files },
 		} = event;
@@ -114,9 +114,11 @@ const EditPostContent: React.FC<PostFormData> = ({
 					console.log(markdown);
 					setWatchContent((prevContent) => prevContent + "\n" + markdown);
 					// setValue("content", watchContent);
-					textareaRef.current.value =
-						textareaRef.current?.value + "\n" + markdown;
-					// textareaRef.current.value + "\n" + markdown;
+
+					if (textareaRef.current) {
+						textareaRef.current.value =
+							textareaRef.current.value + "\n" + markdown;
+					}
 
 					setPreview(url);
 				} else {
@@ -138,7 +140,7 @@ const EditPostContent: React.FC<PostFormData> = ({
 			const formHeight = formRef.current.clientHeight;
 			const buttonHeight =
 				formRef.current.querySelector("button")?.clientHeight || 0;
-			const maxHeight = formHeight - buttonHeight - 48 - 192; // adjust 48px as padding/margin
+			const maxHeight = formHeight - buttonHeight - 48 - 192;
 			textareaRef.current.style.maxHeight = `${maxHeight}px`;
 
 			textareaRef.current.style.height = "auto";

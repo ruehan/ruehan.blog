@@ -3,8 +3,26 @@
 import prisma from "@/lib/prisma";
 import fetch from "node-fetch";
 
+interface VideoDetails {
+	result: {
+		input: {
+			width: number;
+			height: number;
+		};
+	};
+}
+
 const apiKey = process.env.CLOUDFLARE_API_KEY;
 const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+
+function isVideoDetails(data: any): data is VideoDetails {
+	return (
+		data &&
+		typeof data === "object" &&
+		"result" in data &&
+		"input" in data.result
+	);
+}
 
 export default async function getDetails(videoId: string) {
 	const response = await fetch(
@@ -19,20 +37,29 @@ export default async function getDetails(videoId: string) {
 	);
 
 	if (response.ok) {
-		const videoDetails = await response.json();
+		const data = await response.json();
 
-		console.log(videoDetails.result.input);
+		if (isVideoDetails(data)) {
+			console.log(data.result.input);
 
-		return {
-			status: 200,
-			success: true,
-			data: videoDetails.result,
-		};
+			return {
+				status: 200,
+				success: true,
+				data: data.result,
+			};
+		} else {
+			console.error("Invalid data format", data);
+			return {
+				status: 500,
+				success: false,
+				message: "Invalid data format",
+			};
+		}
 	} else {
 		return {
-			status: 200,
-			success: true,
-			message: "failed",
+			status: response.status,
+			success: false,
+			message: "Failed to fetch video details",
 		};
 	}
 }

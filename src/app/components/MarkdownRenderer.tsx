@@ -28,16 +28,28 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
 	const openModal = async (url: string) => {
 		const response = await getDetails(url.slice(7));
 
-		const { width, height } = response.data.input;
+		const videoId = url.slice(7);
 
-		// setSize({ width, height });
+		if (response.success && response.data) {
+			const { width, height } = response.data.input;
 
-		calSize(width, height);
+			// Call the function to calculate size
+			calSize(width, height);
 
-		console.log(width, height);
+			// Log the dimensions
+			console.log(width, height);
 
-		setUrl(url.slice(7));
-		setIsOpen(true);
+			// Update state
+			setUrl(videoId);
+			setIsOpen(true);
+		} else {
+			// Handle the case where the response is not successful or data is undefined
+			console.error(
+				"Failed to get video details or data is undefined:",
+				response
+			);
+			// You might want to show an error message to the user or handle the error in some way
+		}
 	};
 
 	const calSize = (width: number, height: number) => {

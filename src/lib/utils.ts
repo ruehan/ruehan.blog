@@ -6,3 +6,12 @@ export function formatDate(date: any) {
 
 	return formattedDate;
 }
+
+export function getNameById(tags: any, id: any) {
+	const tag = tags.find((tag: any) => tag.id === id);
+	return tag ? tag.name : null;
+}
+
+export function generateRandomKey() {
+	return Math.random().toString(36).substr(2, 9);
+}
