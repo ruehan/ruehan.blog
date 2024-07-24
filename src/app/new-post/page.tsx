@@ -2,8 +2,10 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useFormState } from "react-dom";
 import MarkdownRenderer from "../components/MarkdownRenderer";
 import { getUploadUrl } from "../edit-post/[id]/actions";
+import { createPost } from "./actions";
 
 interface PostFormData {
 	title: string;
@@ -13,37 +15,44 @@ interface PostFormData {
 	thumbnail: string;
 }
 
+const extractImageUrls = (markdown: string): string[] => {
+	const regex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+	const matches = [];
+	let match;
+
+	while ((match = regex.exec(markdown)) !== null) {
+		matches.push(match[1]);
+	}
+
+	return matches;
+};
+
 const NewPost: React.FC = () => {
 	const { register, handleSubmit, watch } = useForm<PostFormData>();
 	const [watchContent, setWatchContent] = useState<string>("");
 	const watchTags = watch("tags");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const formRef = useRef<HTMLFormElement>(null);
+	const [imageUrls, setImageUrls] = useState<string[]>([]);
 
 	const [imageId, setImageId] = useState("");
 	const [uploadUrl, setUploadUrl] = useState("");
 	const [preview, setPreview] = useState("");
 
-	const handleInput = () => {
-		if (textareaRef.current && formRef.current) {
-			setWatchContent(textareaRef.current.value);
-			const formHeight = formRef.current.clientHeight;
-			const buttonHeight =
-				formRef.current.querySelector("button")?.clientHeight || 0;
-			const maxHeight = formHeight - buttonHeight - 48 - 192; // adjust 48px as padding/margin
-			textareaRef.current.style.maxHeight = `${maxHeight}px`;
+	const interceptAction = (_: any, formData: FormData) => {
+		const tags = watchTags!.split(",").map((tag) => tag.trim());
+		tags.forEach((tag) => {
+			formData.append("format_tags", tag);
+		});
 
-			textareaRef.current.style.height = "auto";
-			textareaRef.current.style.height = `${Math.min(
-				textareaRef.current.scrollHeight,
-				maxHeight
-			)}px`;
-		}
+		console.log(imageUrls);
+
+		imageUrls.forEach((image, idx) => {
+			formData.append("images", image);
+		});
+
+		return createPost(_, formData);
 	};
-
-	useEffect(() => {
-		handleInput();
-	}, []);
 
 	const onImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const {
@@ -107,15 +116,38 @@ const NewPost: React.FC = () => {
 		}
 	};
 
+	const handleInput = () => {
+		if (textareaRef.current && formRef.current) {
+			setWatchContent(textareaRef.current.value);
+			const formHeight = formRef.current.clientHeight;
+			const buttonHeight =
+				formRef.current.querySelector("button")?.clientHeight || 0;
+			const maxHeight = formHeight - buttonHeight - 48 - 192;
+			textareaRef.current.style.maxHeight = `${maxHeight}px`;
+
+			textareaRef.current.style.height = "auto";
+			textareaRef.current.style.height = `${Math.min(
+				textareaRef.current.scrollHeight,
+				maxHeight
+			)}px`;
+
+			const urls = extractImageUrls(textareaRef.current.value);
+			setImageUrls(urls);
+		}
+	};
+
+	useEffect(() => {
+		handleInput();
+	}, []);
+
+	const [state, dispatch] = useFormState(interceptAction, null);
+
 	return (
 		<main className="w-full h-screen flex overflow-hidden">
 			<form
 				className="w-full h-full flex-col p-8 relative md:full"
 				ref={formRef}
-				onSubmit={handleSubmit((data) => {
-					// handle form submission
-					console.log(data);
-				})}
+				action={dispatch}
 			>
 				<div>
 					<input
