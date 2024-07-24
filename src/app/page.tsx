@@ -69,8 +69,8 @@ export default function Home() {
 	}
 
 	return (
-		<main className="p-4 w-full flex flex-col items-center justify-center">
-			<div className="flex gap-2 mb-4">
+		<main className="p-[4rem] w-full flex flex-col items-center justify-center">
+			<div className="flex gap-2 mb-4 overflow-scroll">
 				<button
 					onClick={() => handleTagClick("전체보기")}
 					className={`tag ${
@@ -92,22 +92,23 @@ export default function Home() {
 				))}
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-8 w-full ">
 				{posts.map((post: any) => (
 					<Link
 						href={`/post/${post.id}`}
 						key={generateRandomKey()}
-						className="text-center  w-full h-fit rounded-xl flex flex-col bg-[#fafdfc]"
+						className="text-center  w-full h-fit rounded-xl flex flex-col bg-[#F1F2FF] hover:scale-110 duration-300 flex-nowrap"
 					>
 						<Image
 							alt="Thumbnail"
 							width={300}
 							height={300}
 							src={getThumbNail(post.images)}
-							className="w-full bg-blue-100 rounded-t-xl"
+							className="bg-blue-100 rounded-t-xl w-full h-[160px]"
+							style={{ objectFit: "cover" }}
 						></Image>
 						<div className="grid grid-rows-4 p-4 w-fit">
-							<div className="text-xl flex justify-start items-center font-bold">
+							<div className="text-xl w-full flex-nowrap flex justify-start items-center font-bold ">
 								{post.title}
 							</div>
 							<div></div>
@@ -116,7 +117,7 @@ export default function Home() {
 									{post.tags.map((tag: any) => (
 										<span
 											key={generateRandomKey()}
-											className="tag bg-red-100 text-xs font-bold rounded-full p-[5px]"
+											className="tag bg-[#cfdfee] text-xs font-bold rounded-full p-[5px]"
 										>
 											{getNameById(tags, tag.tagId)}
 										</span>

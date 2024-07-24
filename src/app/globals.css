@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+	background-color: #f7f7fa;
+}
+
 @font-face {
 	font-family: "CustomFont";
 	src: url("../font/Cafe24Decoschool.ttf");
