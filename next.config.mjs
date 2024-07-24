@@ -5,6 +5,9 @@ const nextConfig = {
 			{
 				hostname: "imagedelivery.net",
 			},
+			{
+				hostname: "res.cloudinary.com",
+			},
 		],
 	},
 };
