@@ -131,3 +131,10 @@ input {
 	font-size: 0.8rem;
 	margin-left: 3rem;
 }
+
+button {
+	/* display: flex;
+	flex-wrap: nowrap;
+	width: auto; */
+	white-space: nowrap;
+}

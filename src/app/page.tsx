@@ -70,7 +70,7 @@ export default function Home() {
 
 	return (
 		<main className="p-[4rem] w-full flex flex-col items-center justify-center">
-			<div className="flex gap-2 mb-4 overflow-scroll">
+			<div className="flex justify-center p-2 gap-2 w-full flex-wrap  overflow-scroll fixed bottom-0 z-20 backdrop-blur-sm">
 				<button
 					onClick={() => handleTagClick("전체보기")}
 					className={`tag ${
