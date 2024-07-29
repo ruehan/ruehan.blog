@@ -44,19 +44,24 @@ export default function Presentation({ params }: { params: { id: string } }) {
 
 	return (
 		<div className="">
-			<div className=" h-fit max-h-screen markdown p-12">
+			<div className=" h-fit max-h-screen markdown p-12 mb-[200px]">
 				<MarkdownRenderer content={slides[currentSlide]}></MarkdownRenderer>
 			</div>
-			<div className="w-full bg-gray-200 p-4 text-lg flex justify-around fixed bottom-0">
-				<button onClick={prevSlide} disabled={currentSlide === 0}>
+			<div className="w-full p-4 text-lg flex justify-around items-center fixed bottom-0">
+				<button
+					onClick={prevSlide}
+					disabled={currentSlide === 0}
+					className="bg-[#cfdfee] py-2 px-4 rounded-2xl cursor-pointer font-bold text-lg"
+				>
 					Previous
 				</button>
-				<span>
+				<span className="text-xl font-bold py-2 px-4">
 					{currentSlide + 1} / {slides.length}
 				</span>
 				<button
 					onClick={nextSlide}
 					disabled={currentSlide === slides.length - 1}
+					className="bg-[#cfdfee] py-2 px-4 rounded-2xl cursor-pointer font-bold text-lg"
 				>
 					Next
 				</button>
