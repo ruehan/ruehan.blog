@@ -13,6 +13,10 @@ function getUrlById(urls: any, id: any) {
 	return url ? url.url : null;
 }
 
+function hasTagId(tags: any, targetTagId: number) {
+	return tags.some((tag: any) => tag.tagId === targetTagId);
+}
+
 export default function Home() {
 	const [posts, setPosts] = useState<any>();
 	const [tags, setTags] = useState<any>();
@@ -95,7 +99,9 @@ export default function Home() {
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-8 w-full ">
 				{posts.map((post: any) => (
 					<Link
-						href={`/post/${post.id}`}
+						href={
+							hasTagId(post.tags, 24) ? `/slide/${post.id}` : `/post/${post.id}`
+						}
 						key={generateRandomKey()}
 						className="text-center  w-full h-fit rounded-xl flex flex-col bg-[#F1F2FF] hover:scale-110 duration-300 flex-nowrap"
 					>
