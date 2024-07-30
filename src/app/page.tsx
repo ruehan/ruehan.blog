@@ -6,7 +6,7 @@ import Image from "next/image";
 import { getImages } from "./edit-post/[id]/actions";
 import { useEffect, useState } from "react";
 import { getPost, getPostByTag, getTags } from "./actions";
-import LoadingSpinner from "./components/Loader";
+import SkeletonCard from "./components/SkeletonCard";
 
 function getUrlById(urls: any, id: any) {
 	const url = urls.find((url: any) => url.id === id);
@@ -69,7 +69,15 @@ export default function Home() {
 	}
 
 	if (!posts || !tags || !loading) {
-		return <LoadingSpinner />;
+		return (
+			<main className="p-[4rem] w-full flex flex-col items-center justify-center">
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
+					{[...Array(12)].map((_, index) => (
+						<SkeletonCard key={index} />
+					))}
+				</div>
+			</main>
+		);
 	}
 
 	return (
@@ -99,11 +107,13 @@ export default function Home() {
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-8 w-full ">
 				{posts.map((post: any) => (
 					<Link
+						prefetch
 						href={
 							hasTagId(post.tags, 24) ? `/slide/${post.id}` : `/post/${post.id}`
 						}
-						key={generateRandomKey()}
-						className="text-center  w-full h-fit rounded-xl flex flex-col bg-[#F1F2FF] hover:scale-110 duration-300 flex-nowrap"
+						className={`text-center w-full h-fit rounded-xl flex flex-col bg-[#F1F2FF] 
+        hover:scale-105 hover:shadow-lg duration-300 flex-nowrap
+        transition-all duration-500`}
 					>
 						<Image
 							alt="Thumbnail"
@@ -112,7 +122,7 @@ export default function Home() {
 							src={getThumbNail(post.images)}
 							className="bg-blue-100 rounded-t-xl w-full h-[160px]"
 							style={{ objectFit: "cover" }}
-						></Image>
+						/>
 						<div className="grid grid-rows-4 p-4 w-fit">
 							<div className="text-xl w-full flex-nowrap flex justify-start items-center font-bold ">
 								{post.title}
