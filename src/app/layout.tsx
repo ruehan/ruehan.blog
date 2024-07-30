@@ -3,6 +3,8 @@ import localFont from "next/font/local";
 import "./globals.css";
 import "highlight.js/styles/a11y-dark.css";
 import Link from "next/link";
+import "leaflet/dist/leaflet.css";
+import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 
 const reko = localFont({
 	src: "../font/NanumSquareR.ttf",
@@ -21,9 +23,17 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body className={reko.className}>
-				<nav className="w-full h-16 backdrop-blur-sm sticky top-0 z-10 shadow-sm flex justify-center items-center">
+				<nav className="w-full h-16 backdrop-blur-sm sticky top-0 z-10 shadow-sm flex justify-center items-center relative">
 					<Link href={"/"} className="text-2xl custom-font">
 						Ruehan.blog
+					</Link>
+					<Link
+						href={"/map"}
+						className="text-2xl custom-font absolute right-10"
+						text-2xl
+						custom-font
+					>
+						Map
 					</Link>
 				</nav>
 				{children}
