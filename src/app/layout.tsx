@@ -30,8 +30,6 @@ export default function RootLayout({
 					<Link
 						href={"/map"}
 						className="text-2xl custom-font absolute right-10"
-						text-2xl
-						custom-font
 					>
 						Map
 					</Link>
