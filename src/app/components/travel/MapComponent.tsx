@@ -100,6 +100,49 @@ const MapEvents = ({
 	return null;
 };
 
+const MapStyleControl = ({
+	changeStyle,
+}: {
+	changeStyle: (style: "default" | "satellite" | "terrain") => void;
+}) => {
+	const mapRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		if (mapRef.current) {
+			L.DomEvent.disableClickPropagation(mapRef.current);
+		}
+	}, []);
+
+	return (
+		<div
+			style={{
+				position: "absolute",
+				top: "50px",
+				right: "10px",
+				zIndex: 1000,
+				backgroundColor: "white",
+				padding: "5px",
+				borderRadius: "5px",
+				boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+			}}
+			ref={mapRef}
+		>
+			<button
+				onClick={() => changeStyle("default")}
+				style={{ marginRight: "5px" }}
+			>
+				기본
+			</button>
+			<button
+				onClick={() => changeStyle("satellite")}
+				style={{ marginRight: "5px" }}
+			>
+				위성
+			</button>
+			{/* <button onClick={() => changeStyle("terrain")}>지형</button> */}
+		</div>
+	);
+};
+
 const MapComponent: React.FC = () => {
 	const [currentPosition, setCurrentPosition] = useState<
 		[number, number] | null
@@ -111,6 +154,14 @@ const MapComponent: React.FC = () => {
 	const [transportMode, setTransportMode] = useState<
 		"driving-car" | "cycling-regular"
 	>("driving-car");
+
+	const [mapStyle, setMapStyle] = useState<"default" | "satellite" | "terrain">(
+		"default"
+	);
+
+	const changeMapStyle = (style: "default" | "satellite" | "terrain") => {
+		setMapStyle(style);
+	};
 
 	const fetchRoute = useCallback(async () => {
 		if (!startPoint || !endPoint) return;
@@ -139,9 +190,12 @@ const MapComponent: React.FC = () => {
 				}
 			);
 
-			const { distance, duration } = response.data.routes[0].summary;
+			console.log(response.data);
+
+			const { distance, duration, ascent } = response.data.routes[0].summary;
 			const encodedPolyline = response.data.routes[0].geometry;
 			const decodedCoordinates = decode(encodedPolyline);
+			const segments = response.data.routes[0].segments;
 
 			setRoute({
 				coordinates: decodedCoordinates,
@@ -228,15 +282,41 @@ const MapComponent: React.FC = () => {
 						zoom={16}
 						style={{ height: "100%", width: "100%", zIndex: 1 }}
 					>
-						<TileLayer
+						{/* <TileLayer
 							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 							attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-						/>
+						/> */}
+						{/* 
+						<TileLayer
+							url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+							attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+						/> */}
+
+						{mapStyle === "default" && (
+							<TileLayer
+								url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+								attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+							/>
+						)}
+						{mapStyle === "satellite" && (
+							<TileLayer
+								url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+								attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+							/>
+						)}
+						{mapStyle === "terrain" && (
+							<TileLayer
+								url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+								attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+							/>
+						)}
+
 						<AutoCenterControl
 							coords={currentPosition}
 							isAutoCenter={isAutoCenter}
 							setIsAutoCenter={setIsAutoCenter}
 						/>
+						<MapStyleControl changeStyle={changeMapStyle} />
 						<MapEvents onMapClick={handleMapClick} />
 						<Marker position={currentPosition}>
 							<Popup>현재 위치</Popup>
@@ -251,7 +331,16 @@ const MapComponent: React.FC = () => {
 								<Popup>도착 지점</Popup>
 							</Marker>
 						)}
-						{route && <Polyline positions={route.coordinates} color="blue" />}
+						{route && (
+							<Polyline
+								positions={route.coordinates}
+								color="blue"
+								pathOptions={{
+									weight: 5, // 선의 두께
+									opacity: 0.6, // 선의 불투명도
+								}}
+							/>
+						)}
 					</DynamicMap>
 					{route && (
 						<div
@@ -268,6 +357,11 @@ const MapComponent: React.FC = () => {
 						>
 							<p>총 거리: {route.distance.toFixed(2)} km</p>
 							<p>소요 시간: {route.duration.toFixed(0)} 분</p>
+							{/* <p>총 상승 고도: {route.ascent.toFixed(0)} m</p>
+							<p>
+								평균 경사도:{" "}
+								{((route.ascent / (route.distance * 1000)) * 100).toFixed(2)}%
+							</p> */}
 						</div>
 					)}
 				</div>
