@@ -107,13 +107,14 @@ export default function Home() {
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4  gap-8 w-full ">
 				{posts.map((post: any) => (
 					<Link
+						key={generateRandomKey()}
 						prefetch
 						href={
 							hasTagId(post.tags, 24) ? `/slide/${post.id}` : `/post/${post.id}`
 						}
 						className={`text-center w-full h-fit rounded-xl flex flex-col bg-[#F1F2FF] 
         hover:scale-105 hover:shadow-lg duration-300 flex-nowrap
-        transition-all duration-500`}
+        transition-all`}
 					>
 						<Image
 							alt="Thumbnail"

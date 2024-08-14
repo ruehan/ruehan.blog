@@ -1,0 +1,48 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String   @db.Text
+  content   String   @db.Text
+  tags      PostTag[]
+  images    ImageTag[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id    Int      @id @default(autoincrement())
+  name  String   @unique
+  posts PostTag[]
+}
+
+model PostTag {
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId Int
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  Int
+
+  @@id([postId, tagId])
+}
+
+model Image {
+  id  Int @id @default(autoincrement())
+  url String  @unique
+  images ImageTag[]
+}
+
+model ImageTag {
+  post  Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId  Int
+  image Image @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  imageId Int
+
+  @@id([postId, imageId])
+}
