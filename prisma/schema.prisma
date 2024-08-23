@@ -1,48 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model Post {
-  id        Int      @id @default(autoincrement())
-  title     String   @db.Text
-  content   String   @db.Text
-  tags      PostTag[]
+  id        Int        @id @default(autoincrement())
+  content   String     @db.Text
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  title     String     @db.Text
   images    ImageTag[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  tags      PostTag[]
 }
 
 model Tag {
-  id    Int      @id @default(autoincrement())
-  name  String   @unique
+  id    Int       @id @default(autoincrement())
+  name  String    @unique
   posts PostTag[]
 }
 
 model PostTag {
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId Int
-  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId  Int
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([postId, tagId])
+  @@index([tagId], map: "PostTag_tagId_fkey")
 }
 
 model Image {
-  id  Int @id @default(autoincrement())
-  url String  @unique
+  id     Int        @id @default(autoincrement())
+  url    String     @unique
   images ImageTag[]
 }
 
 model ImageTag {
-  post  Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId  Int
-  image Image @relation(fields: [imageId], references: [id], onDelete: Cascade)
   imageId Int
+  image   Image @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  post    Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@id([postId, imageId])
+  @@index([imageId], map: "ImageTag_imageId_fkey")
+}
+
+model Token {
+  id             String    @id @default(uuid())
+  createdAt      DateTime  @default(now())
+  lastAccessedAt DateTime  @updatedAt
+  favorites      Favorite[]
+  playlists      Playlist[]
+  playHistory    PlayHistory[]
+}
+
+model Song {
+  id             Int       @id @default(autoincrement())
+  title          String
+  artist         String
+  album          String?
+  releaseYear    Int?
+  duration       Int       // Duration in seconds
+  genre          String?
+  audioUrl       String
+  coverImageUrl  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  favorites      Favorite[]
+  playlistItems  PlaylistItem[]
+  playHistory    PlayHistory[]
+
+  CategorySong CategorySong[]
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  tokenId   String
+  songId    Int
+  createdAt DateTime @default(now())
+  token     Token    @relation(fields: [tokenId], references: [id])
+  song      Song     @relation(fields: [songId], references: [id])
+
+  @@unique([tokenId, songId])
+}
+
+model Playlist {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  tokenId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  token       Token     @relation(fields: [tokenId], references: [id])
+  items       PlaylistItem[]
+}
+
+model PlaylistItem {
+  id         Int      @id @default(autoincrement())
+  playlistId Int
+  songId     Int
+  order      Int
+  addedAt    DateTime @default(now())
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  song       Song     @relation(fields: [songId], references: [id])
+
+  @@unique([playlistId, songId])
+}
+
+model PlayHistory {
+  id        Int      @id @default(autoincrement())
+  tokenId   String
+  songId    Int
+  playedAt  DateTime @default(now())
+  token     Token    @relation(fields: [tokenId], references: [id])
+  song      Song     @relation(fields: [songId], references: [id])
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  songs       CategorySong[]
+}
+
+model CategorySong {
+  id         Int      @id @default(autoincrement())
+  categoryId Int
+  songId     Int
+  category   Category @relation(fields: [categoryId], references: [id])
+  song       Song     @relation(fields: [songId], references: [id])
+
+  @@unique([categoryId, songId])
 }
