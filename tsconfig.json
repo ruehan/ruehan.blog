@@ -4,6 +4,7 @@
 		"target": "es2015",
 		"allowJs": true,
 		"skipLibCheck": true,
+		"strictNullChecks": true,
 		"strict": true,
 		"noEmit": true,
 		"esModuleInterop": true,
@@ -22,14 +23,6 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": [
-		"next-env.d.ts",
-		"**/*.ts",
-		"**/*.tsx",
-		".next/types/**/*.ts",
-		"src/app/post/[id]",
-		"src/app/(.)video",
-		"src/app/video"
-	],
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/post/[id]", "src/app/(.)video", "src/app/video"],
 	"exclude": ["node_modules"]
 }

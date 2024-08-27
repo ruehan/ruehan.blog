@@ -12,6 +12,9 @@ const nextConfig = {
 			{
 				hostname: "res.cloudinary.com",
 			},
+			{
+				hostname: "i.ytimg.com",
+			},
 		],
 	},
 };
