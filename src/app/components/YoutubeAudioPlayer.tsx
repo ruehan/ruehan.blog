@@ -1,7 +1,7 @@
 import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import YouTube from "react-youtube";
-import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, ListOrdered, Repeat, Shuffle } from "lucide-react";
 
 interface Song {
 	id: number;
@@ -21,6 +21,8 @@ interface MP3PlayerProps {
 	songs: Song[];
 }
 
+type PlaybackMode = "sequential" | "random" | "repeat";
+
 const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 	const [currentSongIndex, setCurrentSongIndex] = useState(0);
 	const [currentSong, setCurrentSong] = useState<Song | null>(null);
@@ -35,6 +37,24 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 	const [rotation, setRotation] = useState(0);
 	const rotationRef = useRef(0);
 	const animationFrameId = useRef<number | null>(null);
+
+	const [playbackMode, setPlaybackMode] = useState<PlaybackMode>("sequential");
+	const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
+
+	const handlePlaybackModeChange = (mode: PlaybackMode) => {
+		setPlaybackMode(mode);
+		if (mode === "random") {
+			setShuffledIndices(shuffleArray([...Array(songs.length).keys()]));
+		}
+	};
+
+	const shuffleArray = (array: number[]) => {
+		for (let i = array.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[array[i], array[j]] = [array[j], array[i]];
+		}
+		return array;
+	};
 
 	useEffect(() => {
 		console.log(songs[currentSongIndex]);
@@ -137,15 +157,34 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 
 	const handleNext = () => {
 		playerRef.current?.internalPlayer.pauseVideo();
-		setCurrentSongIndex((prevIndex) => (prevIndex === songs.length - 1 ? 0 : prevIndex + 1));
+		if (playbackMode === "repeat") {
+			// 현재 곡을 다시 재생
+			playerRef.current?.internalPlayer.seekTo(0);
+			playerRef.current?.internalPlayer.playVideo();
+		} else if (playbackMode === "random") {
+			const currentIndex = shuffledIndices.indexOf(currentSongIndex);
+			const nextIndex = (currentIndex + 1) % songs.length;
+			setCurrentSongIndex(shuffledIndices[nextIndex]);
+		} else {
+			// sequential mode
+			setCurrentSongIndex((prevIndex) => (prevIndex === songs.length - 1 ? 0 : prevIndex + 1));
+		}
 		setCurrentSong(null);
-		rotationRef.current = 0;
 	};
 
 	const handlePrevious = () => {
-		setCurrentSongIndex((prevIndex) => (prevIndex === 0 ? songs.length - 1 : prevIndex - 1));
+		if (playbackMode === "repeat") {
+			// 현재 곡을 처음부터 재생
+			playerRef.current?.internalPlayer.seekTo(0);
+		} else if (playbackMode === "random") {
+			const currentIndex = shuffledIndices.indexOf(currentSongIndex);
+			const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
+			setCurrentSongIndex(shuffledIndices[prevIndex]);
+		} else {
+			// sequential mode
+			setCurrentSongIndex((prevIndex) => (prevIndex === 0 ? songs.length - 1 : prevIndex - 1));
+		}
 		setCurrentSong(null);
-		rotationRef.current = 0;
 	};
 
 	const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,6 +276,18 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 					<ChevronRight size={24} />
 				</button>
 			</div>
+			<div className="flex justify-center space-x-4 mt-4">
+				<button className={`focus:outline-none ${playbackMode === "sequential" ? "text-green-500" : "text-gray-500"}`} onClick={() => handlePlaybackModeChange("sequential")} title="순차 재생">
+					<ListOrdered size={20} />
+				</button>
+				<button className={`focus:outline-none ${playbackMode === "random" ? "text-green-500" : "text-gray-500"}`} onClick={() => handlePlaybackModeChange("random")} title="랜덤 재생">
+					<Shuffle size={20} />
+				</button>
+				{/* <button className={`focus:outline-none ${playbackMode === "repeat" ? "text-green-500" : "text-gray-500"}`} onClick={() => handlePlaybackModeChange("repeat")} title="한 곡 반복">
+					<Repeat size={20} />
+				</button> */}
+			</div>
+
 			<div className="mb-4">
 				<div className="flex items-center justify-between text-xs text-gray-500 mb-1">
 					<span>{formatTime(currentTime)}</span>
