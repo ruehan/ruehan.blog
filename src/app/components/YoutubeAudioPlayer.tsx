@@ -1,7 +1,7 @@
 import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import YouTube from "react-youtube";
-import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, ListOrdered, Repeat, Shuffle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, ListOrdered, Repeat, Shuffle, List } from "lucide-react";
 
 interface Song {
 	id: number;
@@ -40,6 +40,69 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 
 	const [playbackMode, setPlaybackMode] = useState<PlaybackMode>("sequential");
 	const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
+
+	const [showPlaylist, setShowPlaylist] = useState(true);
+
+	const getPlaylistItems = () => {
+		const playlistSize = 5; // 현재 곡 포함 총 5곡 표시
+		const halfSize = Math.floor(playlistSize / 2);
+
+		let playlist: (Song & { isCurrentSong: boolean })[];
+
+		if (playbackMode === "random") {
+			const currentShuffleIndex = shuffledIndices.indexOf(currentSongIndex);
+			let startIndex = currentShuffleIndex - halfSize;
+			let endIndex = currentShuffleIndex + halfSize;
+
+			// 범위를 벗어나는 경우 조정
+			if (startIndex < 0) {
+				endIndex -= startIndex;
+				startIndex = 0;
+			}
+			if (endIndex >= shuffledIndices.length) {
+				startIndex -= endIndex - shuffledIndices.length + 1;
+				endIndex = shuffledIndices.length - 1;
+			}
+
+			// 시작 인덱스가 0보다 작아지지 않도록 보정
+			startIndex = Math.max(0, startIndex);
+
+			playlist = shuffledIndices.slice(startIndex, endIndex + 1).map((index) => ({
+				...songs[index],
+				isCurrentSong: index === currentSongIndex,
+			}));
+		} else {
+			let startIndex = currentSongIndex - halfSize;
+			let endIndex = currentSongIndex + halfSize;
+
+			// 범위를 벗어나는 경우 조정
+			if (startIndex < 0) {
+				endIndex -= startIndex;
+				startIndex = 0;
+			}
+			if (endIndex >= songs.length) {
+				startIndex -= endIndex - songs.length + 1;
+				endIndex = songs.length - 1;
+			}
+
+			// 시작 인덱스가 0보다 작아지지 않도록 보정
+			startIndex = Math.max(0, startIndex);
+
+			playlist = songs.slice(startIndex, endIndex + 1).map((song, index) => ({
+				...song,
+				isCurrentSong: startIndex + index === currentSongIndex,
+			}));
+		}
+
+		return playlist;
+	};
+
+	const handleSongSelect = (index: number) => {
+		setCurrentSongIndex(index);
+		setCurrentSong(null);
+		setIsPlaying(true);
+		setShowPlaylist(false);
+	};
 
 	const handlePlaybackModeChange = (mode: PlaybackMode) => {
 		setPlaybackMode(mode);
@@ -245,6 +308,12 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 				<h2 className="text-xl font-bold text-gray-800">{currentSong.title}</h2>
 				<p className="text-sm text-gray-600 mt-1">{currentSong.artist}</p>
 			</div>
+			{!showPlaylist && (
+				<>
+					<div className="flex justify-between items-center mb-6">{/* ... (기존의 앨범 커버 및 컨트롤 UI) */}</div>
+					{/* ... (기존의 프로그레스 바 및 볼륨 컨트롤) */}
+				</>
+			)}
 			<div className="flex justify-between items-center mb-6">
 				<button className="text-gray-600 hover:text-gray-800 focus:outline-none" onClick={handlePrevious}>
 					<ChevronLeft size={24} />
@@ -283,6 +352,9 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 				<button className={`focus:outline-none ${playbackMode === "random" ? "text-green-500" : "text-gray-500"}`} onClick={() => handlePlaybackModeChange("random")} title="랜덤 재생">
 					<Shuffle size={20} />
 				</button>
+				<button className={`focus:outline-none ${showPlaylist ? "text-blue-500" : "text-gray-500"}`} onClick={() => setShowPlaylist(!showPlaylist)} title="재생 목록">
+					<List size={20} />
+				</button>
 				{/* <button className={`focus:outline-none ${playbackMode === "repeat" ? "text-green-500" : "text-gray-500"}`} onClick={() => handlePlaybackModeChange("repeat")} title="한 곡 반복">
 					<Repeat size={20} />
 				</button> */}
@@ -318,6 +390,21 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 				onStateChange={handlePlayerStateChange}
 				ref={playerRef}
 			/>
+
+			{showPlaylist && (
+				<div className="max-h-60 overflow-y-auto mb-4">
+					{getPlaylistItems().map((song) => (
+						<div
+							key={song.id}
+							className={`p-2 cursor-pointer hover:bg-gray-200 ${song.isCurrentSong ? "bg-green-400" : ""}`}
+							onClick={() => handleSongSelect(songs.findIndex((s) => s.id === song.id))}
+						>
+							<p className="font-semibold">{song.title}</p>
+							<p className="text-sm text-gray-600">{song.artist}</p>
+						</div>
+					))}
+				</div>
+			)}
 		</div>
 	);
 };
