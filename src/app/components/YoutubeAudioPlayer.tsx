@@ -1,7 +1,7 @@
 import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import YouTube from "react-youtube";
-import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, ListOrdered, Repeat, Shuffle, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, ListOrdered, Repeat, Shuffle, List, Filter, Heart, Star } from "lucide-react";
 
 interface Song {
 	id: number;
@@ -15,15 +15,19 @@ interface Song {
 	coverImageUrl: string | null;
 	createdAt: Date;
 	updatedAt: Date;
+	isFavorite?: boolean;
 }
 
 interface MP3PlayerProps {
 	songs: Song[];
 }
 
+type PlaylistItem = Song & { isCurrentSong: boolean };
+
 type PlaybackMode = "sequential" | "random" | "repeat";
 
-const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
+const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
+	const [songs, setSongs] = useState<Song[]>(initialSongs);
 	const [currentSongIndex, setCurrentSongIndex] = useState(0);
 	const [currentSong, setCurrentSong] = useState<Song | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -42,55 +46,70 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 	const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
 
 	const [showPlaylist, setShowPlaylist] = useState(true);
+	const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
-	const getPlaylistItems = () => {
-		const playlistSize = 5; // 현재 곡 포함 총 5곡 표시
+	useEffect(() => {
+		const favoritesData = localStorage.getItem("favoriteSongs");
+		if (favoritesData) {
+			const favoriteIds = new Set(JSON.parse(favoritesData));
+			setSongs(songs.map((song) => ({ ...song, isFavorite: favoriteIds.has(song.id) })));
+		}
+	}, []);
+
+	const toggleFavorite = (songId: number) => {
+		setSongs((prevSongs) => {
+			const newSongs = prevSongs.map((song) => (song.id === songId ? { ...song, isFavorite: !song.isFavorite } : song));
+			const favoriteIds = newSongs.filter((song) => song.isFavorite).map((song) => song.id);
+			localStorage.setItem("favoriteSongs", JSON.stringify(favoriteIds));
+			return newSongs;
+		});
+	};
+
+	const getPlaylistItems = (): PlaylistItem[] => {
+		const playlistSize = 9; // 현재 곡 포함 총 5곡 표시
 		const halfSize = Math.floor(playlistSize / 2);
 
+		let filteredSongs = showOnlyFavorites ? songs.filter((song) => song.isFavorite) : songs;
 		let playlist: (Song & { isCurrentSong: boolean })[];
 
+		// 현재 곡이 필터링된 목록에 없는 경우를 처리
+		const currentSongInFilteredList = filteredSongs.find((song) => song.id === songs[currentSongIndex].id);
+
+		if (!currentSongInFilteredList) {
+			// 현재 곡이 필터링된 목록에 없으면, 필터링을 해제하고 모든 곡을 표시
+			filteredSongs = songs;
+			setShowOnlyFavorites(false); // 필터 상태 업데이트
+		}
+
 		if (playbackMode === "random") {
-			const currentShuffleIndex = shuffledIndices.indexOf(currentSongIndex);
-			let startIndex = currentShuffleIndex - halfSize;
-			let endIndex = currentShuffleIndex + halfSize;
+			// 셔플 모드일 때
+			const validShuffledIndices = shuffledIndices.filter((index) => index < filteredSongs.length);
+			const currentShuffleIndex = validShuffledIndices.findIndex((index) => filteredSongs[index].id === songs[currentSongIndex].id);
 
-			// 범위를 벗어나는 경우 조정
-			if (startIndex < 0) {
-				endIndex -= startIndex;
-				startIndex = 0;
-			}
-			if (endIndex >= shuffledIndices.length) {
-				startIndex -= endIndex - shuffledIndices.length + 1;
-				endIndex = shuffledIndices.length - 1;
+			if (currentShuffleIndex === -1) {
+				// 현재 곡이 셔플 인덱스에 없는 경우, 셔플 인덱스를 재생성
+				const newShuffledIndices = shuffleArray([...Array(filteredSongs.length).keys()]);
+				setShuffledIndices(newShuffledIndices);
+				return getPlaylistItems(); // 재귀적으로 함수 다시 호출
 			}
 
-			// 시작 인덱스가 0보다 작아지지 않도록 보정
-			startIndex = Math.max(0, startIndex);
+			let startIndex = Math.max(0, currentShuffleIndex - halfSize);
+			let endIndex = Math.min(validShuffledIndices.length - 1, currentShuffleIndex + halfSize);
 
-			playlist = shuffledIndices.slice(startIndex, endIndex + 1).map((index) => ({
-				...songs[index],
-				isCurrentSong: index === currentSongIndex,
+			playlist = validShuffledIndices.slice(startIndex, endIndex + 1).map((index) => ({
+				...filteredSongs[index],
+				isCurrentSong: filteredSongs[index].id === songs[currentSongIndex].id,
 			}));
 		} else {
-			let startIndex = currentSongIndex - halfSize;
-			let endIndex = currentSongIndex + halfSize;
+			// 순차 또는 반복 모드일 때
+			const currentFilteredIndex = filteredSongs.findIndex((song) => song.id === songs[currentSongIndex].id);
 
-			// 범위를 벗어나는 경우 조정
-			if (startIndex < 0) {
-				endIndex -= startIndex;
-				startIndex = 0;
-			}
-			if (endIndex >= songs.length) {
-				startIndex -= endIndex - songs.length + 1;
-				endIndex = songs.length - 1;
-			}
+			let startIndex = Math.max(0, currentFilteredIndex - halfSize);
+			let endIndex = Math.min(filteredSongs.length - 1, currentFilteredIndex + halfSize);
 
-			// 시작 인덱스가 0보다 작아지지 않도록 보정
-			startIndex = Math.max(0, startIndex);
-
-			playlist = songs.slice(startIndex, endIndex + 1).map((song, index) => ({
+			playlist = filteredSongs.slice(startIndex, endIndex + 1).map((song, index) => ({
 				...song,
-				isCurrentSong: startIndex + index === currentSongIndex,
+				isCurrentSong: startIndex + index === currentFilteredIndex,
 			}));
 		}
 
@@ -101,7 +120,7 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 		setCurrentSongIndex(index);
 		setCurrentSong(null);
 		setIsPlaying(true);
-		setShowPlaylist(false);
+		setShowPlaylist(true);
 	};
 
 	const handlePlaybackModeChange = (mode: PlaybackMode) => {
@@ -305,7 +324,12 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 	return (
 		<div className="w-80 p-6 bg-gray-100 rounded-xl shadow-md font-sans fixed top-[50%] translate-y-[-50%] left-[50%] translate-x-[-50%]">
 			<div className="text-center mb-6">
-				<h2 className="text-xl font-bold text-gray-800">{currentSong.title}</h2>
+				<h2 className="text-xl font-bold text-gray-80 flex justify-center items-center gap-2">
+					{currentSong.title}
+					<button onClick={() => toggleFavorite(currentSong.id)} className={`focus:outline-none ${currentSong.isFavorite ? "text-yellow-500" : "text-gray-400"}`}>
+						<Star size={20} fill={currentSong.isFavorite ? "currentColor" : "none"} />
+					</button>
+				</h2>
 				<p className="text-sm text-gray-600 mt-1">{currentSong.artist}</p>
 			</div>
 			{!showPlaylist && (
@@ -355,8 +379,9 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 				<button className={`focus:outline-none ${showPlaylist ? "text-blue-500" : "text-gray-500"}`} onClick={() => setShowPlaylist(!showPlaylist)} title="재생 목록">
 					<List size={20} />
 				</button>
-				{/* <button className={`focus:outline-none ${playbackMode === "repeat" ? "text-green-500" : "text-gray-500"}`} onClick={() => handlePlaybackModeChange("repeat")} title="한 곡 반복">
-					<Repeat size={20} />
+				{/* 오류로 임시삭제 */}
+				{/* <button className={`focus:outline-none ${showOnlyFavorites ? "text-yellow-500" : "text-gray-500"}`} onClick={() => setShowOnlyFavorites(!showOnlyFavorites)} title="즐겨찾기만 보기">
+					<Star size={20} fill={showOnlyFavorites ? "currentColor" : "none"} />
 				</button> */}
 			</div>
 
@@ -394,13 +419,11 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 			{showPlaylist && (
 				<div className="max-h-60 overflow-y-auto mb-4">
 					{getPlaylistItems().map((song) => (
-						<div
-							key={song.id}
-							className={`p-2 cursor-pointer hover:bg-gray-200 ${song.isCurrentSong ? "bg-green-400" : ""}`}
-							onClick={() => handleSongSelect(songs.findIndex((s) => s.id === song.id))}
-						>
-							<p className="font-semibold">{song.title}</p>
-							<p className="text-sm text-gray-600">{song.artist}</p>
+						<div key={song.id} className={`p-2 flex items-center justify-between ${song.isCurrentSong ? "bg-green-400" : "hover:bg-gray-200"}`}>
+							<div className="cursor-pointer flex-grow" onClick={() => handleSongSelect(songs.findIndex((s) => s.id === song.id))}>
+								<p className="font-semibold">{song.title}</p>
+								<p className="text-sm text-gray-600">{song.artist}</p>
+							</div>
 						</div>
 					))}
 				</div>
