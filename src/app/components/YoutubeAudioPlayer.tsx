@@ -273,6 +273,7 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 		const seekTime = (Number(event.target.value) / 100) * duration;
 		if (playerRef.current?.internalPlayer) {
 			playerRef.current.internalPlayer.seekTo(seekTime, true);
+			playerRef.current.internalPlayer.setVolume(volume);
 			setCurrentTime(seekTime);
 		}
 	};
@@ -411,6 +412,7 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 					console.log("영상 준비 완료!");
 					setDuration(event.target.getDuration());
 					event.target.playVideo();
+					event.target.setVolume(volume);
 				}}
 				onStateChange={handlePlayerStateChange}
 				ref={playerRef}
