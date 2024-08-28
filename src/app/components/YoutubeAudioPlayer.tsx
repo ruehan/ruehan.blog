@@ -1,8 +1,7 @@
-"use client";
 import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import YouTube from "react-youtube";
-import { ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from "lucide-react";
 
 interface Song {
 	id: number;
@@ -24,33 +23,23 @@ interface MP3PlayerProps {
 
 const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 	const [currentSongIndex, setCurrentSongIndex] = useState(0);
-	const [currentSong, setCurrentSong] = useState<Song | null>();
+	const [currentSong, setCurrentSong] = useState<Song | null>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [progress, setProgress] = useState<number>(0);
 	const [currentTime, setCurrentTime] = useState<number>(0);
 	const [duration, setDuration] = useState<number>(0);
+	const [volume, setVolume] = useState<number>(10);
+	const [isMuted, setIsMuted] = useState<boolean>(false);
 	const playerRef = useRef<YouTube>(null);
 	const progressInterval = useRef<number | null>(null);
-
-	const [youTubeReady, setYouTubeReady] = useState(false);
-
-	// useEffect(() => {
-	// 	// 곡이 변경될 때마다 YouTube 플레이어 재초기화
-	// 	if (playerRef.current?.internalPlayer) {
-	// 		const videoId = extractYouTubeId(songs[currentSongIndex].audioUrl);
-	// 		if (videoId) {
-	// 			playerRef.current.internalPlayer.loadVideoById(videoId);
-	// 			setIsPlaying(true);
-	// 			setProgress(0);
-	// 			setCurrentTime(0);
-	// 		}
-	// 	}
-	// }, [currentSongIndex, songs]);
+	const [rotation, setRotation] = useState(0);
+	const rotationRef = useRef(0);
+	const animationFrameId = useRef<number | null>(null);
 
 	useEffect(() => {
 		console.log(songs[currentSongIndex]);
 		setCurrentSong(songs[currentSongIndex]);
-	}, [currentSongIndex]);
+	}, [currentSongIndex, songs]);
 
 	useEffect(() => {
 		return () => {
@@ -59,6 +48,30 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 			}
 		};
 	}, []);
+
+	const updateRotation = () => {
+		if (isPlaying) {
+			rotationRef.current += 0.5; // 회전 속도 조절 (더 작은 값으로 설정하여 천천히 회전)
+			setRotation(rotationRef.current);
+			animationFrameId.current = requestAnimationFrame(updateRotation);
+		}
+	};
+
+	useEffect(() => {
+		if (isPlaying) {
+			animationFrameId.current = requestAnimationFrame(updateRotation);
+		} else {
+			if (animationFrameId.current) {
+				cancelAnimationFrame(animationFrameId.current);
+			}
+		}
+
+		return () => {
+			if (animationFrameId.current) {
+				cancelAnimationFrame(animationFrameId.current);
+			}
+		};
+	}, [isPlaying]);
 
 	const formatTime = (time: number): string => {
 		const minutes = Math.floor(time / 60);
@@ -94,26 +107,20 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 	const handlePlayerStateChange = (event: YT.OnStateChangeEvent) => {
 		const playerState = event.data;
 
-		console.log(event.target);
-
 		switch (playerState) {
 			case YT.PlayerState.UNSTARTED:
-				console.log("상태변경 [UNSTARTED]");
 				setIsPlaying(false);
 				startProgressTracker();
 				break;
 			case YT.PlayerState.PLAYING:
-				console.log("상태변경 [PLAYING]");
 				setIsPlaying(true);
 				startProgressTracker();
 				break;
 			case YT.PlayerState.PAUSED:
-				console.log("상태변경 [PAUSED]");
 				setIsPlaying(false);
 				stopProgressTracker();
 				break;
 			case YT.PlayerState.ENDED:
-				console.log("상태변경 [ENDED]");
 				handleNext();
 				break;
 		}
@@ -132,11 +139,13 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 		playerRef.current?.internalPlayer.pauseVideo();
 		setCurrentSongIndex((prevIndex) => (prevIndex === songs.length - 1 ? 0 : prevIndex + 1));
 		setCurrentSong(null);
+		rotationRef.current = 0;
 	};
 
 	const handlePrevious = () => {
 		setCurrentSongIndex((prevIndex) => (prevIndex === 0 ? songs.length - 1 : prevIndex - 1));
 		setCurrentSong(null);
+		rotationRef.current = 0;
 	};
 
 	const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,6 +155,33 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 			setCurrentTime(seekTime);
 		}
 	};
+
+	const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const newVolume = Number(event.target.value);
+		setVolume(newVolume);
+		if (playerRef.current?.internalPlayer) {
+			playerRef.current.internalPlayer.setVolume(newVolume);
+		}
+		if (newVolume === 0) {
+			setIsMuted(true);
+		} else {
+			setIsMuted(false);
+		}
+	};
+
+	const toggleMute = () => {
+		if (playerRef.current?.internalPlayer) {
+			if (isMuted) {
+				playerRef.current.internalPlayer.unMute();
+				playerRef.current.internalPlayer.setVolume(volume);
+				setIsMuted(false);
+			} else {
+				playerRef.current.internalPlayer.mute();
+				setIsMuted(true);
+			}
+		}
+	};
+
 	const extractYouTubeId = (url: string): string | undefined => {
 		const match = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/);
 		return match ? match[1] : undefined;
@@ -174,21 +210,52 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs }) => {
 				<button className="text-gray-600 hover:text-gray-800 focus:outline-none" onClick={handlePrevious}>
 					<ChevronLeft size={24} />
 				</button>
-				<div className="w-48 h-48 overflow-hidden rounded-lg">
-					<img src={currentSong.coverImageUrl!} alt={`${currentSong.title} cover`} className="w-full h-full object-cover" />
+				<div className="relative w-48 h-48">
+					{/* 비닐 레코드 테두리 */}
+					<div className="absolute inset-0 rounded-full bg-black shadow-lg"></div>
+					{/* CD 모양 앨범 커버 */}
+					<div
+						className={`absolute inset-2 rounded-full overflow-hidden shadow-inner`}
+						style={{
+							// transition: "transform 0.1s linear",
+							transform: `rotate(${rotation}deg)`,
+						}}
+					>
+						<img src={currentSong.coverImageUrl!} alt={`${currentSong.title} cover`} className="w-full h-full object-cover" />
+					</div>
+					{/* CD 중앙 홀 */}
+					<div className="absolute top-1/2 left-1/2 w-12 h-12 bg-gray-200 rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-inner z-10"></div>
+					{/* 재생/일시정지 버튼 */}
+					<button
+						className="absolute top-1/2 left-1/2 w-16 h-16 flex items-center justify-center bg-white bg-opacity-75 text-green-500 rounded-full hover:bg-opacity-100 focus:outline-none transform -translate-x-1/2 -translate-y-1/2 z-20"
+						onClick={handlePlayPause}
+					>
+						{isPlaying ? <Pause size={32} /> : <Play size={32} />}
+					</button>
 				</div>
 				<button className="text-gray-600 hover:text-gray-800 focus:outline-none" onClick={handleNext}>
 					<ChevronRight size={24} />
 				</button>
 			</div>
-			<div className="flex items-center gap-2 mb-4">
-				<span className="text-xs text-gray-500">{formatTime(currentTime)}</span>
-				<input type="range" min="0" max="100" value={progress} onChange={handleSeek} className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer" />
-				<span className="text-xs text-gray-500">{formatTime(duration)}</span>
+			<div className="mb-4">
+				<div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+					<span>{formatTime(currentTime)}</span>
+					<span>{formatTime(duration)}</span>
+				</div>
+				<div className="relative w-full h-2 bg-gray-300 rounded-full">
+					<div className="absolute top-0 left-0 h-full bg-green-500 rounded-full" style={{ width: `${progress}%` }}></div>
+					<input type="range" min="0" max="100" value={progress} onChange={handleSeek} className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" />
+				</div>
 			</div>
-			<button className="w-12 h-12 mx-auto flex items-center justify-center bg-green-500 text-white rounded-full hover:bg-green-600 focus:outline-none" onClick={handlePlayPause}>
-				{isPlaying ? <Pause size={24} /> : <Play size={24} />}
-			</button>
+			<div className="flex items-center justify-between mb-4">
+				<button className="text-gray-600 hover:text-gray-800 focus:outline-none" onClick={toggleMute}>
+					{isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+				</button>
+				<div className="relative w-48 h-2 bg-gray-300 rounded-full">
+					<div className="absolute top-0 left-0 h-full bg-purple-500 rounded-full" style={{ width: `${isMuted ? 0 : volume}%` }}></div>
+					<input type="range" min="0" max="100" value={isMuted ? 0 : volume} onChange={handleVolumeChange} className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" />
+				</div>
+			</div>
 			<YouTube
 				videoId={extractYouTubeId(currentSong?.audioUrl)}
 				opts={opts}
