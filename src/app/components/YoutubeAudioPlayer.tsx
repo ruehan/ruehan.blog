@@ -1,7 +1,7 @@
 import Image from "next/image";
 import React, { useState, useEffect, useRef } from "react";
 import YouTube from "react-youtube";
-import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, ListOrdered, Repeat, Shuffle, List, Filter, Heart, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX, ListOrdered, Repeat, Shuffle, List, Filter, Heart, Star, Info } from "lucide-react";
 
 interface Song {
 	id: number;
@@ -47,6 +47,12 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 
 	const [showPlaylist, setShowPlaylist] = useState(true);
 	const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+
+	const [showFooterInfo, setShowFooterInfo] = useState(false);
+
+	const toggleFooterInfo = () => {
+		setShowFooterInfo(!showFooterInfo);
+	};
 
 	useEffect(() => {
 		const favoritesData = localStorage.getItem("favoriteSongs");
@@ -430,6 +436,22 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 					))}
 				</div>
 			)}
+
+			<div className="mt-4 pt-2 border-t border-gray-300 text-xs text-gray-500">
+				<div className="flex justify-between items-center">
+					<span>© 2024 RueHan's Music</span>
+					<button onClick={toggleFooterInfo} className="focus:outline-none text-gray-500 hover:text-gray-700">
+						<Info size={16} />
+					</button>
+				</div>
+				{showFooterInfo && (
+					<div className="mt-2 space-y-1">
+						<p>제작 시작: 2023년 8월 28일</p>
+						<p>제작자: RueHan</p>
+						<p>사용 기술: React, TypeScript, YouTube API</p>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 };
