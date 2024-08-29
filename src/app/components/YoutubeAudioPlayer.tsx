@@ -34,7 +34,7 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 	const [progress, setProgress] = useState<number>(0);
 	const [currentTime, setCurrentTime] = useState<number>(0);
 	const [duration, setDuration] = useState<number>(0);
-	const [volume, setVolume] = useState<number>(10);
+	const [volume, setVolume] = useState<number>(50);
 	const [isMuted, setIsMuted] = useState<boolean>(false);
 	const playerRef = useRef<YouTube>(null);
 	const progressInterval = useRef<number | null>(null);
@@ -50,17 +50,71 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 
 	const [showFooterInfo, setShowFooterInfo] = useState(false);
 
-	const toggleFooterInfo = () => {
-		setShowFooterInfo(!showFooterInfo);
-	};
-
 	useEffect(() => {
 		const favoritesData = localStorage.getItem("favoriteSongs");
 		if (favoritesData) {
 			const favoriteIds = new Set(JSON.parse(favoritesData));
 			setSongs(songs.map((song) => ({ ...song, isFavorite: favoriteIds.has(song.id) })));
 		}
+		setShuffledIndices(shuffleArray([...Array(initialSongs.length).keys()]));
 	}, []);
+
+	useEffect(() => {
+		console.log(songs[currentSongIndex]);
+		setCurrentSong(songs[currentSongIndex]);
+	}, [currentSongIndex, songs]);
+
+	useEffect(() => {
+		return () => {
+			if (progressInterval.current) {
+				cancelAnimationFrame(progressInterval.current);
+			}
+		};
+	}, []);
+
+	useEffect(() => {
+		if (isPlaying) {
+			animationFrameId.current = requestAnimationFrame(updateRotation);
+		} else {
+			if (animationFrameId.current) {
+				cancelAnimationFrame(animationFrameId.current);
+			}
+		}
+
+		return () => {
+			if (animationFrameId.current) {
+				cancelAnimationFrame(animationFrameId.current);
+			}
+		};
+	}, [isPlaying]);
+
+	useEffect(() => {
+		if (currentSong === null && isPlaying) {
+			const playNewSong = async () => {
+				if (playerRef.current?.internalPlayer) {
+					await playerRef.current.internalPlayer.loadVideoById(extractYouTubeId(songs[currentSongIndex].audioUrl));
+					playerRef.current.internalPlayer.playVideo();
+				}
+			};
+			playNewSong();
+		}
+	}, [currentSong, currentSongIndex, isPlaying]);
+
+	const toggleFooterInfo = () => {
+		setShowFooterInfo(!showFooterInfo);
+	};
+
+	const getFilteredSongs = () => {
+		return showOnlyFavorites ? songs.filter((song) => song.isFavorite) : songs;
+	};
+
+	const shuffleArray = (array: number[]) => {
+		for (let i = array.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[array[i], array[j]] = [array[j], array[i]];
+		}
+		return array;
+	};
 
 	const toggleFavorite = (songId: number) => {
 		setSongs((prevSongs) => {
@@ -72,31 +126,27 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 	};
 
 	const getPlaylistItems = (): PlaylistItem[] => {
-		const playlistSize = 9; // 현재 곡 포함 총 5곡 표시
+		const playlistSize = 9;
 		const halfSize = Math.floor(playlistSize / 2);
 
-		let filteredSongs = showOnlyFavorites ? songs.filter((song) => song.isFavorite) : songs;
-		let playlist: (Song & { isCurrentSong: boolean })[];
+		let filteredSongs = getFilteredSongs();
+		let playlist: PlaylistItem[];
 
-		// 현재 곡이 필터링된 목록에 없는 경우를 처리
 		const currentSongInFilteredList = filteredSongs.find((song) => song.id === songs[currentSongIndex].id);
 
 		if (!currentSongInFilteredList) {
-			// 현재 곡이 필터링된 목록에 없으면, 필터링을 해제하고 모든 곡을 표시
 			filteredSongs = songs;
-			setShowOnlyFavorites(false); // 필터 상태 업데이트
+			setShowOnlyFavorites(false);
 		}
 
 		if (playbackMode === "random") {
-			// 셔플 모드일 때
 			const validShuffledIndices = shuffledIndices.filter((index) => index < filteredSongs.length);
 			const currentShuffleIndex = validShuffledIndices.findIndex((index) => filteredSongs[index].id === songs[currentSongIndex].id);
 
 			if (currentShuffleIndex === -1) {
-				// 현재 곡이 셔플 인덱스에 없는 경우, 셔플 인덱스를 재생성
 				const newShuffledIndices = shuffleArray([...Array(filteredSongs.length).keys()]);
 				setShuffledIndices(newShuffledIndices);
-				return getPlaylistItems(); // 재귀적으로 함수 다시 호출
+				return getPlaylistItems();
 			}
 
 			let startIndex = Math.max(0, currentShuffleIndex - halfSize);
@@ -107,7 +157,6 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 				isCurrentSong: filteredSongs[index].id === songs[currentSongIndex].id,
 			}));
 		} else {
-			// 순차 또는 반복 모드일 때
 			const currentFilteredIndex = filteredSongs.findIndex((song) => song.id === songs[currentSongIndex].id);
 
 			let startIndex = Math.max(0, currentFilteredIndex - halfSize);
@@ -136,50 +185,59 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 		}
 	};
 
-	const shuffleArray = (array: number[]) => {
-		for (let i = array.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[array[i], array[j]] = [array[j], array[i]];
+	const getNextSongIndex = (currentIndex: number, filteredSongs: Song[]) => {
+		if (playbackMode === "repeat") {
+			return currentIndex;
+		} else if (playbackMode === "random") {
+			const validShuffledIndices = shuffledIndices.filter((index) => filteredSongs.includes(songs[index]));
+			const currentShuffleIndex = validShuffledIndices.indexOf(currentIndex);
+			return validShuffledIndices[(currentShuffleIndex + 1) % validShuffledIndices.length];
+		} else {
+			// sequential mode
+			const currentFilteredIndex = filteredSongs.findIndex((song) => song.id === songs[currentIndex].id);
+			const nextFilteredIndex = (currentFilteredIndex + 1) % filteredSongs.length;
+			return songs.findIndex((song) => song.id === filteredSongs[nextFilteredIndex].id);
 		}
-		return array;
 	};
 
-	useEffect(() => {
-		console.log(songs[currentSongIndex]);
-		setCurrentSong(songs[currentSongIndex]);
-	}, [currentSongIndex, songs]);
+	const getPreviousSongIndex = (currentIndex: number, filteredSongs: Song[]) => {
+		if (playbackMode === "repeat") {
+			return currentIndex;
+		} else if (playbackMode === "random") {
+			const validShuffledIndices = shuffledIndices.filter((index) => filteredSongs.includes(songs[index]));
+			const currentShuffleIndex = validShuffledIndices.indexOf(currentIndex);
+			return validShuffledIndices[(currentShuffleIndex - 1 + validShuffledIndices.length) % validShuffledIndices.length];
+		} else {
+			// sequential mode
+			const currentFilteredIndex = filteredSongs.findIndex((song) => song.id === songs[currentIndex].id);
+			const prevFilteredIndex = (currentFilteredIndex - 1 + filteredSongs.length) % filteredSongs.length;
+			return songs.findIndex((song) => song.id === filteredSongs[prevFilteredIndex].id);
+		}
+	};
 
-	useEffect(() => {
-		return () => {
-			if (progressInterval.current) {
-				cancelAnimationFrame(progressInterval.current);
-			}
-		};
-	}, []);
+	const handleNext = () => {
+		const filteredSongs = getFilteredSongs();
+		const nextIndex = getNextSongIndex(currentSongIndex, filteredSongs);
+		setCurrentSongIndex(nextIndex);
+		setCurrentSong(null);
+		setIsPlaying(true);
+	};
+
+	const handlePrevious = () => {
+		const filteredSongs = getFilteredSongs();
+		const prevIndex = getPreviousSongIndex(currentSongIndex, filteredSongs);
+		setCurrentSongIndex(prevIndex);
+		setCurrentSong(null);
+		setIsPlaying(true);
+	};
 
 	const updateRotation = () => {
 		if (isPlaying) {
-			rotationRef.current += 0.5; // 회전 속도 조절 (더 작은 값으로 설정하여 천천히 회전)
+			rotationRef.current += 0.5;
 			setRotation(rotationRef.current);
 			animationFrameId.current = requestAnimationFrame(updateRotation);
 		}
 	};
-
-	useEffect(() => {
-		if (isPlaying) {
-			animationFrameId.current = requestAnimationFrame(updateRotation);
-		} else {
-			if (animationFrameId.current) {
-				cancelAnimationFrame(animationFrameId.current);
-			}
-		}
-
-		return () => {
-			if (animationFrameId.current) {
-				cancelAnimationFrame(animationFrameId.current);
-			}
-		};
-	}, [isPlaying]);
 
 	const formatTime = (time: number): string => {
 		const minutes = Math.floor(time / 60);
@@ -241,38 +299,6 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 			playerRef.current?.internalPlayer.playVideo();
 		}
 		setIsPlaying(!isPlaying);
-	};
-
-	const handleNext = () => {
-		playerRef.current?.internalPlayer.pauseVideo();
-		if (playbackMode === "repeat") {
-			// 현재 곡을 다시 재생
-			playerRef.current?.internalPlayer.seekTo(0);
-			playerRef.current?.internalPlayer.playVideo();
-		} else if (playbackMode === "random") {
-			const currentIndex = shuffledIndices.indexOf(currentSongIndex);
-			const nextIndex = (currentIndex + 1) % songs.length;
-			setCurrentSongIndex(shuffledIndices[nextIndex]);
-		} else {
-			// sequential mode
-			setCurrentSongIndex((prevIndex) => (prevIndex === songs.length - 1 ? 0 : prevIndex + 1));
-		}
-		setCurrentSong(null);
-	};
-
-	const handlePrevious = () => {
-		if (playbackMode === "repeat") {
-			// 현재 곡을 처음부터 재생
-			playerRef.current?.internalPlayer.seekTo(0);
-		} else if (playbackMode === "random") {
-			const currentIndex = shuffledIndices.indexOf(currentSongIndex);
-			const prevIndex = (currentIndex - 1 + songs.length) % songs.length;
-			setCurrentSongIndex(shuffledIndices[prevIndex]);
-		} else {
-			// sequential mode
-			setCurrentSongIndex((prevIndex) => (prevIndex === 0 ? songs.length - 1 : prevIndex - 1));
-		}
-		setCurrentSong(null);
 	};
 
 	const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,32 +365,21 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 				</h2>
 				<p className="text-sm text-gray-600 mt-1">{currentSong.artist}</p>
 			</div>
-			{!showPlaylist && (
-				<>
-					<div className="flex justify-between items-center mb-6">{/* ... (기존의 앨범 커버 및 컨트롤 UI) */}</div>
-					{/* ... (기존의 프로그레스 바 및 볼륨 컨트롤) */}
-				</>
-			)}
 			<div className="flex justify-between items-center mb-6">
 				<button className="text-gray-600 hover:text-gray-800 focus:outline-none" onClick={handlePrevious}>
 					<ChevronLeft size={24} />
 				</button>
 				<div className="relative w-48 h-48">
-					{/* 비닐 레코드 테두리 */}
 					<div className="absolute inset-0 rounded-full bg-black shadow-lg"></div>
-					{/* CD 모양 앨범 커버 */}
 					<div
 						className={`absolute inset-2 rounded-full overflow-hidden shadow-inner`}
 						style={{
-							// transition: "transform 0.1s linear",
 							transform: `rotate(${rotation}deg)`,
 						}}
 					>
 						<img src={currentSong.coverImageUrl!} alt={`${currentSong.title} cover`} className="w-full h-full object-cover" />
 					</div>
-					{/* CD 중앙 홀 */}
 					<div className="absolute top-1/2 left-1/2 w-12 h-12 bg-gray-200 rounded-full transform -translate-x-1/2 -translate-y-1/2 shadow-inner z-10"></div>
-					{/* 재생/일시정지 버튼 */}
 					<button
 						className="absolute top-1/2 left-1/2 w-16 h-16 flex items-center justify-center bg-white bg-opacity-75 text-green-500 rounded-full hover:bg-opacity-100 focus:outline-none transform -translate-x-1/2 -translate-y-1/2 z-20"
 						onClick={handlePlayPause}
@@ -386,10 +401,9 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 				<button className={`focus:outline-none ${showPlaylist ? "text-blue-500" : "text-gray-500"}`} onClick={() => setShowPlaylist(!showPlaylist)} title="재생 목록">
 					<List size={20} />
 				</button>
-				{/* 오류로 임시삭제 */}
-				{/* <button className={`focus:outline-none ${showOnlyFavorites ? "text-yellow-500" : "text-gray-500"}`} onClick={() => setShowOnlyFavorites(!showOnlyFavorites)} title="즐겨찾기만 보기">
+				<button className={`focus:outline-none ${showOnlyFavorites ? "text-yellow-500" : "text-gray-500"}`} onClick={() => setShowOnlyFavorites(!showOnlyFavorites)} title="즐겨찾기만 보기">
 					<Star size={20} fill={showOnlyFavorites ? "currentColor" : "none"} />
-				</button> */}
+				</button>
 			</div>
 
 			<div className="mb-4">
@@ -426,9 +440,9 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 
 			{showPlaylist && (
 				<div className="max-h-60 overflow-y-auto mb-4">
-					{getPlaylistItems().map((song) => (
+					{getPlaylistItems().map((song, index) => (
 						<div key={song.id} className={`p-2 flex items-center justify-between ${song.isCurrentSong ? "bg-green-400" : "hover:bg-gray-200"}`}>
-							<div className="cursor-pointer flex-grow" onClick={() => handleSongSelect(songs.findIndex((s) => s.id === song.id))}>
+							<div className="cursor-pointer flex-grow" onClick={() => handleSongSelect(index)}>
 								<p className="font-semibold">{song.title}</p>
 								<p className="text-sm text-gray-600">{song.artist}</p>
 							</div>
@@ -446,7 +460,7 @@ const MP3Player: React.FC<MP3PlayerProps> = ({ songs: initialSongs }) => {
 				</div>
 				{showFooterInfo && (
 					<div className="mt-2 space-y-1">
-						<p>제작 시작: 2023년 8월 28일</p>
+						<p>제작 시작: 2024년 8월 27일</p>
 						<p>제작자: RueHan</p>
 						<p>사용 기술: React, TypeScript, YouTube API</p>
 					</div>
