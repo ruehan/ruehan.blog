@@ -17,6 +17,7 @@ interface Song {
 import MP3Player from "@/app/components/YoutubeAudioPlayer";
 import React, { useEffect, useState } from "react";
 import { getMusic } from "../music-list/actions";
+import Link from "next/link";
 
 export default function Home() {
 	const [songs, setSongs] = useState<Song[]>([]);
@@ -30,5 +31,10 @@ export default function Home() {
 		fetchSongs();
 	}, []);
 
-	return <div>{songs.length > 0 && <MP3Player songs={songs} />}</div>;
+	return (
+		<>
+			<p className="fixed top-10 left-10 bg-yellow-300 p-8 font-bold rounded-md">개발 중 - Beta</p>
+			<div>{songs.length > 0 && <MP3Player songs={songs} />}</div>
+		</>
+	);
 }
